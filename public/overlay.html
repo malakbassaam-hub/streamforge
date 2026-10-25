@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111820">
+    <title>StreamForge Overlay</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", sans-serif;
+        background: transparent;
+        color: #f3f6f4;
+        font-synthesis: none;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        background: transparent;
+      }
+
+      main {
+        width: min(420px, 100%);
+        display: grid;
+        gap: 10px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 4px;
+        color: #d5e1dc;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #a8b8b1;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      #status::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #f0b95c;
+        content: "";
+      }
+
+      #status.connected::before { background: #75d6a1; }
+
+      #feed {
+        display: grid;
+        gap: 8px;
+      }
+
+      .event {
+        padding: 12px 14px;
+        border: 1px solid rgb(207 224 216 / 16%);
+        border-left: 3px solid #65caa2;
+        border-radius: 6px;
+        background: rgb(17 24 32 / 92%);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+        animation: arrive 220ms ease-out both;
+      }
+
+      .event.raid { border-left-color: #f0b95c; }
+
+      .label {
+        margin-bottom: 4px;
+        color: #91a69c;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .content {
+        overflow-wrap: anywhere;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .user { color: #8ce0b8; font-weight: 700; }
+      .raid .user { color: #ffd17f; }
+
+      @keyframes arrive {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main aria-label="StreamForge live event overlay">
+      <header>
+        <span>Live activity</span>
+        <span id="status" role="status">Connecting</span>
+      </header>
+      <section id="feed" aria-live="polite" aria-label="Recent events"></section>
+    </main>
+    <script>
+      const feed = document.querySelector("#feed");
+      const status = document.querySelector("#status");
+      const source = new EventSource("/events");
+
+      source.onopen = () => {
+        status.textContent = "Demo connected";
+        status.classList.add("connected");
+      };
+
+      source.onerror = () => {
+        status.textContent = "Reconnecting";
+        status.classList.remove("connected");
+      };
+
+      source.onmessage = ({ data }) => {
+        const event = JSON.parse(data);
+        const item = document.createElement("article");
+        const label = document.createElement("div");
+        const content = document.createElement("div");
+        const user = document.createElement("span");
+
+        item.className = `event ${event.type}`;
+        label.className = "label";
+        content.className = "content";
+        user.className = "user";
+        user.textContent = event.user;
+
+        if (event.type === "raid") {
+          label.textContent = "Raid";
+          content.append(user, document.createTextNode(` brought ${event.viewers} viewers`));
+        } else {
+          label.textContent = "Chat";
+          content.append(user, document.createTextNode(`: ${event.text}`));
+        }
+
+        item.append(label, content);
+        feed.prepend(item);
+
+        while (feed.children.length > 8) {
+          feed.lastElementChild.remove();
+        }
+      };
+    </script>
+  </body>
+</html>
