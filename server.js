@@ -5,6 +5,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
+import { startEventSub } from "./core/eventsub.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -87,6 +88,15 @@ async function getValidToken() {
   }
 }
 
+// ---- Publishing events to memory + all connected overlays ----
+function publish(event) {
+  addEventToMemory(event);
+  const payload = `data: ${JSON.stringify(event)}\n\n`;
+  for (const client of clients) {
+    client.write(payload);
+  }
+}
+
 // ---- Basic routes ----
 app.get("/", (_request, response) => {
   response.redirect("/overlay");
@@ -125,15 +135,17 @@ app.get("/auth/status", async (_req, res) => {
   });
 });
 
-simulator.events.on("event", (event) => {
-  addEventToMemory(event);
-  const payload = `data: ${JSON.stringify(event)}\n\n`;
-  for (const client of clients) {
-    client.write(payload);
-  }
-});
+// ---- Demo simulator (disable with DEMO=0 in .env) ----
+if (process.env.DEMO !== "0") {
+  simulator.events.on("event", publish);
+  simulator.start();
+}
 
-simulator.start();
+// ---- Real Twitch events ----
+function launchEventSub() {
+  if (!twitchTokens) return;
+  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: publish });
+}
 
 // ---- Twitch OAuth ----
 const pendingStates = new Set();
@@ -174,6 +186,7 @@ app.get("/auth/callback", async (req, res) => {
     if (data.access_token) {
       storeTokenResponse(data);
       console.log("Auth OK. Granted scopes:", data.scope); // never log the tokens themselves
+      launchEventSub();
       res.send(`<h1>Authentication Successful</h1><p>Connected and tokens saved.</p><a href="/overlay">Go to Overlay</a>`);
     } else {
       console.error("Token exchange failed:", data.message || data.error);
@@ -187,4 +200,5 @@ app.get("/auth/callback", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`StreamForge demo server listening at http://localhost:${port}`);
+  launchEventSub();
 });
