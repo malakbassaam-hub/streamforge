@@ -6,13 +6,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
+import { sanitizeChatText } from "./core/safety.js";
+import { createVoteManager, VoteInputError } from "./core/vote.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const overlayPath = path.join(__dirname, "public", "overlay.html");
-const simulator = createDemoSimulator();
+const controlPath = path.join(__dirname, "public", "control.html");
 const clients = new Set();
+app.use(express.static(path.join(__dirname, "public")));
 
 const { TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI } = process.env;
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !TWITCH_REDIRECT_URI) {
@@ -90,11 +93,30 @@ async function getValidToken() {
 
 // ---- Publishing events to memory + all connected overlays ----
 function publish(event) {
-  addEventToMemory(event);
-  const payload = `data: ${JSON.stringify(event)}\n\n`;
+  const safeEvent = event.type === "chat.message" || event.type === "chat"
+    ? { ...event, text: sanitizeChatText(event.text) }
+    : event;
+  addEventToMemory(safeEvent);
+  const payload = `data: ${JSON.stringify(safeEvent)}\n\n`;
   for (const client of clients) {
     client.write(payload);
   }
+}
+
+const voteManager = createVoteManager(publish);
+const demoVoteOptions = process.env.DEMO === "1"
+  ? {
+      isVoteOpen: () => voteManager.isOpen(),
+      onDemoVote: (user, command) => voteManager.handleChatMessage(user, command),
+    }
+  : {};
+const simulator = createDemoSimulator(demoVoteOptions);
+
+function handleEvent(event) {
+  if (event.type === "chat.message") {
+    voteManager.handleChatMessage(event.user, event.text);
+  }
+  publish(event);
 }
 
 // ---- Basic routes ----
@@ -104,6 +126,31 @@ app.get("/", (_request, response) => {
 
 app.get("/overlay", (_request, response) => {
   response.sendFile(overlayPath);
+});
+
+app.get("/control", (_request, response) => {
+  response.sendFile(controlPath);
+});
+
+app.post("/api/vote/start", (request, response, next) => {
+  const address = request.socket.remoteAddress ?? "";
+  const isLoopback = address === "::1"
+    || address.startsWith("127.")
+    || /^::ffff:127(?:\.\d{1,3}){3}$/i.test(address);
+  if (isLoopback) {
+    next();
+    return;
+  }
+  response.status(403).json({ error: "This endpoint is available from localhost only." });
+}, express.json(), (request, response) => {
+  const { question, options, durationSeconds } = request.body ?? {};
+  try {
+    voteManager.start(question, options, durationSeconds);
+    response.status(201).json({ started: true });
+  } catch (error) {
+    if (!(error instanceof VoteInputError)) throw error;
+    response.status(400).json({ error: error.message });
+  }
 });
 
 app.get("/events", (_request, response) => {
@@ -137,14 +184,14 @@ app.get("/auth/status", async (_req, res) => {
 
 // ---- Demo simulator (disable with DEMO=0 in .env) ----
 if (process.env.DEMO !== "0") {
-  simulator.events.on("event", publish);
+  simulator.events.on("event", handleEvent);
   simulator.start();
 }
 
 // ---- Real Twitch events ----
 function launchEventSub() {
   if (!twitchTokens) return;
-  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: publish });
+  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: handleEvent });
 }
 
 // ---- Twitch OAuth ----

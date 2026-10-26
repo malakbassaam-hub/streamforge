@@ -66,6 +66,46 @@
         gap: 8px;
       }
 
+      #vote-card {
+        padding: 14px;
+        border: 1px solid rgb(207 224 216 / 20%);
+        border-radius: 6px;
+        background: rgb(17 24 32 / 94%);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+      }
+
+      #vote-card[hidden] { display: none; }
+      #vote-question { margin: 0 0 8px; font-size: 15px; }
+      #vote-countdown { margin-bottom: 10px; color: #a8b8b1; font-size: 11px; }
+      #vote-options { display: grid; gap: 8px; }
+
+      .vote-option {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .vote-bar {
+        grid-column: 1 / -1;
+        height: 6px;
+        overflow: hidden;
+        border-radius: 4px;
+        background: #29353c;
+      }
+
+      .vote-fill {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: #65caa2;
+        transition: width 180ms ease-out;
+      }
+
+      .vote-option.winner { color: #ffd17f; font-weight: 700; }
+      .vote-option.winner .vote-fill { background: #f0b95c; }
+
       .event {
         padding: 12px 14px;
         border: 1px solid rgb(207 224 216 / 16%);
@@ -112,12 +152,77 @@
         <span>Live activity</span>
         <span id="status" role="status">Connecting</span>
       </header>
+      <section id="vote-card" aria-live="polite" aria-label="Live vote" hidden>
+        <h2 id="vote-question"></h2>
+        <div id="vote-countdown"></div>
+        <div id="vote-options"></div>
+      </section>
       <section id="feed" aria-live="polite" aria-label="Recent events"></section>
     </main>
     <script>
       const feed = document.querySelector("#feed");
       const status = document.querySelector("#status");
+      const voteCard = document.querySelector("#vote-card");
+      const voteQuestion = document.querySelector("#vote-question");
+      const voteCountdown = document.querySelector("#vote-countdown");
+      const voteOptions = document.querySelector("#vote-options");
       const source = new EventSource("/events");
+      let countdownTimer;
+      let resultTimer;
+
+      function showVote(event) {
+        clearInterval(countdownTimer);
+        clearTimeout(resultTimer);
+        voteCard.hidden = false;
+        voteQuestion.textContent = event.question;
+        voteCountdown.textContent = "";
+        voteOptions.replaceChildren();
+
+        const totalVotes = event.options.reduce((total, option) => total + option.count, 0);
+        for (const option of event.options) {
+          const row = document.createElement("div");
+          const label = document.createElement("span");
+          const count = document.createElement("span");
+          const bar = document.createElement("div");
+          const fill = document.createElement("div");
+
+          row.className = "vote-option";
+          label.textContent = option.label;
+          count.textContent = String(option.count);
+          bar.className = "vote-bar";
+          fill.className = "vote-fill";
+          fill.style.width = `${totalVotes ? (option.count / totalVotes) * 100 : 0}%`;
+          bar.append(fill);
+          row.append(label, count, bar);
+          voteOptions.append(row);
+        }
+
+        function updateCountdown() {
+          const secondsLeft = Math.max(0, Math.ceil((event.endsAt - Date.now()) / 1000));
+          voteCountdown.textContent = `Voting ends in ${secondsLeft}s`;
+        }
+
+        updateCountdown();
+        countdownTimer = setInterval(updateCountdown, 250);
+      }
+
+      function showResult(event) {
+        clearInterval(countdownTimer);
+        if (event.winner === null) {
+          voteCountdown.textContent = "No votes";
+        } else {
+          voteCountdown.textContent = "Vote complete";
+          const winners = Array.isArray(event.winner) ? event.winner : [event.winner];
+          for (const row of voteOptions.children) {
+            if (winners.includes(row.firstElementChild.textContent)) {
+              row.classList.add("winner");
+            }
+          }
+        }
+        resultTimer = setTimeout(() => {
+          voteCard.hidden = true;
+        }, 8000);
+      }
 
       source.onopen = () => {
         status.textContent = "Demo connected";
@@ -131,6 +236,15 @@
 
       source.onmessage = ({ data }) => {
         const event = JSON.parse(data);
+        if (event.type === "vote.update") {
+          showVote(event);
+          return;
+        }
+        if (event.type === "vote.result") {
+          showResult(event);
+          return;
+        }
+
         const item = document.createElement("article");
         const label = document.createElement("div");
         const content = document.createElement("div");

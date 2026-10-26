@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StreamForge Vote Control</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", sans-serif;
+        background: #111820;
+        color: #f3f6f4;
+      }
+
+      body {
+        width: min(480px, 100%);
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      form { display: grid; gap: 12px; }
+      label { display: grid; gap: 5px; color: #c8d5cf; font-size: 13px; }
+      input {
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid #46574f;
+        border-radius: 5px;
+        background: #1b252d;
+        color: inherit;
+        font: inherit;
+      }
+      button {
+        padding: 10px;
+        border: 0;
+        border-radius: 5px;
+        background: #65caa2;
+        color: #102018;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      #status { min-height: 1.3em; color: #a8b8b1; }
+    </style>
+  </head>
+  <body>
+    <h1>Start a vote</h1>
+    <form id="vote-form">
+      <label>
+        Question
+        <input name="question" required maxlength="200">
+      </label>
+      <label>
+        Option 1
+        <input name="option" required maxlength="80">
+      </label>
+      <label>
+        Option 2
+        <input name="option" required maxlength="80">
+      </label>
+      <label>
+        Option 3 (optional)
+        <input name="option" maxlength="80">
+      </label>
+      <label>
+        Option 4 (optional)
+        <input name="option" maxlength="80">
+      </label>
+      <label>
+        Duration (seconds)
+        <input name="durationSeconds" type="text" inputmode="numeric" value="30" required>
+      </label>
+      <button type="submit">Start vote</button>
+      <div id="status" role="status" aria-live="polite"></div>
+    </form>
+    <script type="module">
+      import { parseDurationSeconds } from "./control.js";
+
+      const form = document.querySelector("#vote-form");
+      const status = document.querySelector("#status");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const fields = new FormData(form);
+        const options = fields.getAll("option").map((option) => option.trim()).filter(Boolean);
+        status.textContent = "Starting vote...";
+
+        try {
+          const durationSeconds = parseDurationSeconds(fields.get("durationSeconds"));
+          const response = await fetch("/api/vote/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: fields.get("question"),
+              options,
+              durationSeconds,
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Could not start vote.");
+          status.textContent = "Vote started.";
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

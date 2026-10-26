@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
-import { sanitizeChatText } from "./safety.js";
 
 const chatters = ["PixelPilot", "MapleByte", "OrbitFox", "LunaBuilds"];
+const voters = ["DemoViewer1", "DemoViewer2", "DemoViewer3", "DemoViewer4"];
 const chatMessages = [
   "That was a great play!",
   "Hello from demo mode!",
@@ -14,7 +14,7 @@ function pick(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function createDemoSimulator() {
+export function createDemoSimulator({ isVoteOpen, onDemoVote } = {}) {
   const events = new EventEmitter();
   let interval;
   let eventCount = 0;
@@ -33,11 +33,15 @@ export function createDemoSimulator() {
     }
 
     events.emit("event", {
-      type: "chat",
+      type: "chat.message",
       user: pick(chatters),
-      text: sanitizeChatText(pick(chatMessages)),
-      timestamp: new Date().toISOString(),
+      text: pick(chatMessages),
+      ts: new Date().toISOString(),
     });
+
+    if (onDemoVote && isVoteOpen?.()) {
+      onDemoVote(pick(voters), `!${Math.floor(Math.random() * 2) + 1}`);
+    }
   }
 
   return {
