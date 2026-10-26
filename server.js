@@ -1,13 +1,15 @@
 import "dotenv/config";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-const overlayPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "public", "overlay.html");
+const overlayPath = path.join(__dirname, "public", "overlay.html");
 const simulator = createDemoSimulator();
 const clients = new Set();
 
@@ -16,6 +18,76 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !TWITCH_REDIRECT_URI) {
   console.warn("WARNING: Twitch variables are missing in .env (CLIENT_ID / CLIENT_SECRET / REDIRECT_URI)");
 }
 
+// ---- Event memory (last 100 events, used later by Recap) ----
+const eventMemory = [];
+const MAX_MEMORY_SIZE = 100;
+
+function addEventToMemory(event) {
+  eventMemory.push({ ...event, storedAt: Date.now() });
+  if (eventMemory.length > MAX_MEMORY_SIZE) eventMemory.shift();
+}
+
+// ---- Token storage (saved to data/tokens.json, which is git-ignored) ----
+const DATA_DIR = path.join(__dirname, "data");
+const TOKEN_FILE = path.join(DATA_DIR, "tokens.json");
+
+function loadTokens() {
+  try {
+    return JSON.parse(fs.readFileSync(TOKEN_FILE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function saveTokens(tokens) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+}
+
+let twitchTokens = loadTokens();
+
+function storeTokenResponse(data) {
+  twitchTokens = {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    scope: data.scope,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  saveTokens(twitchTokens);
+}
+
+// Returns a valid access token, refreshing it automatically when it is about to expire.
+async function getValidToken() {
+  if (!twitchTokens) return null;
+  if (Date.now() < twitchTokens.expiresAt - 60_000) return twitchTokens.accessToken;
+
+  try {
+    const response = await fetch("https://id.twitch.tv/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: TWITCH_CLIENT_ID,
+        client_secret: TWITCH_CLIENT_SECRET,
+        grant_type: "refresh_token",
+        refresh_token: twitchTokens.refreshToken,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.access_token) {
+      console.error("Token refresh failed:", data.message || data.error);
+      twitchTokens = null;
+      return null;
+    }
+    storeTokenResponse(data);
+    console.log("Token refreshed.");
+    return twitchTokens.accessToken;
+  } catch (err) {
+    console.error("Token refresh error:", err.message);
+    return null;
+  }
+}
+
+// ---- Basic routes ----
 app.get("/", (_request, response) => {
   response.redirect("/overlay");
 });
@@ -39,7 +111,22 @@ app.get("/events", (_request, response) => {
   });
 });
 
+// Debug endpoints (never expose the tokens themselves)
+app.get("/api/memory", (_req, res) => {
+  res.json({ count: eventMemory.length, events: eventMemory });
+});
+
+app.get("/auth/status", async (_req, res) => {
+  const token = await getValidToken();
+  res.json({
+    connected: Boolean(token),
+    scope: twitchTokens?.scope ?? null,
+    expiresInMinutes: twitchTokens ? Math.round((twitchTokens.expiresAt - Date.now()) / 60000) : null,
+  });
+});
+
 simulator.events.on("event", (event) => {
+  addEventToMemory(event);
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const client of clients) {
     client.write(payload);
@@ -48,7 +135,7 @@ simulator.events.on("event", (event) => {
 
 simulator.start();
 
-// ---- Twitch OAuth (basic connection test, no token storage yet) ----
+// ---- Twitch OAuth ----
 const pendingStates = new Set();
 
 app.get("/auth/twitch", (_req, res) => {
@@ -85,8 +172,9 @@ app.get("/auth/callback", async (req, res) => {
 
     const data = await response.json();
     if (data.access_token) {
+      storeTokenResponse(data);
       console.log("Auth OK. Granted scopes:", data.scope); // never log the tokens themselves
-      res.send(`<h1>Authentication Successful</h1><p>Connected to Twitch.</p><a href="/overlay">Go to Overlay</a>`);
+      res.send(`<h1>Authentication Successful</h1><p>Connected and tokens saved.</p><a href="/overlay">Go to Overlay</a>`);
     } else {
       console.error("Token exchange failed:", data.message || data.error);
       res.status(400).send("Failed to get token. Check the terminal for details.");
