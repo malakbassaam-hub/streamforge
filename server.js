@@ -8,6 +8,7 @@ import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
 import { scanPlugins, watchPlugins } from "./core/plugins.js";
 import { createEventHandler } from "./core/events.js";
+import { createRecapManager, isRecapCommand } from "./core/recap.js";
 import { createSnapshotStore } from "./core/snapshot.js";
 import { requireLocalHost } from "./core/host.js";
 import { createVoteManager, VoteInputError } from "./core/vote.js";
@@ -119,7 +120,28 @@ const demoVoteOptions = process.env.DEMO === "1"
   : {};
 const simulator = createDemoSimulator(demoVoteOptions);
 
-const handleEvent = createEventHandler(voteManager, publish);
+const recapManager = createRecapManager(() => eventMemory, publish);
+const handleEvent = createEventHandler(voteManager, publish, () => {
+  voteManager.isOpen();
+  recapManager.request();
+});
+
+app.post(["/api/demo/recap", "/api/demo/chat"], (request, response, next) => {
+  const address = request.socket.remoteAddress ?? "";
+  if (!(address === "::1" || address.startsWith("127.") || /^::ffff:127(?:\.\d{1,3}){3}$/i.test(address))) {
+    return response.status(403).json({ error: "This endpoint is available from localhost only." });
+  }
+  if (process.env.DEMO !== "1") return response.status(404).json({ error: "Enable DEMO=1 to test recaps." });
+  next();
+}, express.json(), (request, response) => {
+  if (request.path === "/api/demo/chat" && !isRecapCommand(request.body?.text)) {
+    return response.status(400).json({ error: "Enter !recap to test a recap." });
+  }
+  voteManager.isOpen();
+  const result = recapManager.request();
+  if (!result.published) response.set("Retry-After", String(result.retryAfterSeconds));
+  response.status(result.published ? 201 : 429).json(result);
+});
 
 // ---- Basic routes ----
 app.get("/", (_request, response) => {

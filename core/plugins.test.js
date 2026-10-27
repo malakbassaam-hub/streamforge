@@ -11,6 +11,11 @@ test("hello2 has a matching manifest and is discoverable", () => {
   assert.ok(plugins.some(plugin => plugin.name === "hello2"));
 });
 
+test("recap plugin can subscribe to recap cards", () => {
+  const plugins = scanPlugins(fileURLToPath(new URL("../plugins", import.meta.url)));
+  assert.deepEqual(plugins.find(plugin => plugin.name === "recap")?.subscribes, ["recap.card"]);
+});
+
 test("scanPlugins returns valid plugins and skips missing or invalid manifests", (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "streamforge-plugins-"));
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));

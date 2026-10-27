@@ -208,9 +208,31 @@
         <button type="submit">Start vote</button>
         <div id="status" role="status" aria-live="polite"></div>
       </form>
+      <hr>
+      <form id="demo-form">
+        <label>Demo test chat (requires DEMO=1)
+          <input name="text" maxlength="200" placeholder="!recap" required>
+        </label>
+        <button type="submit">Send test command</button>
+        <div id="demo-status" role="status" aria-live="polite"></div>
+      </form>
     </main>
     <script type="module">
       import { parseDurationSeconds } from "./control.js";
+
+      document.querySelector("#demo-form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const status = document.querySelector("#demo-status");
+        try {
+          const text = new FormData(event.currentTarget).get("text");
+          const response = await fetch("/api/demo/chat", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || ("Recap cooldown: " + result.retryAfterSeconds + "s remaining."));
+          status.textContent = "Recap sent to overlay.";
+        } catch (error) { status.textContent = error.message; }
+      });
 
       const form = document.querySelector("#vote-form");
       const status = document.querySelector("#status");

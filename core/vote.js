@@ -32,6 +32,7 @@ export function createVoteManager(publish) {
 
     publish({
       type: "vote.result",
+      question: finishedVote.question,
       winner: winningOptions.length === 0
         ? null
         : winningOptions.length === 1

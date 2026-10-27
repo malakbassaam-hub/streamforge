@@ -1,4 +1,5 @@
 import { sanitizeChatText } from "./safety.js";
+import { isRecapCommand } from "./recap.js";
 
 export function normalizeEvent(event) {
   const ts = Number.isFinite(event.ts) ? event.ts : Date.now();
@@ -12,10 +13,14 @@ export function normalizeEvent(event) {
   return event;
 }
 
-export function createEventHandler(voteManager, publish) {
+export function createEventHandler(voteManager, publish, onRecap) {
   return (input) => {
     const event = normalizeEvent(input);
     if (event.type === "chat.message") {
+      if (isRecapCommand(event.text)) {
+        onRecap?.();
+        return;
+      }
       voteManager.handleChatMessage(event.user, event.text);
     }
     publish(event);

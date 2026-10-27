@@ -399,9 +399,12 @@
               options: event.options.map(({ label, count }) => ({ label, count })),
               endsAt: event.endsAt,
             };
+          case "recap.card":
+            return { type: event.type, lines: event.lines.filter(line => typeof line === "string"), ts: event.ts };
           case "vote.result":
             return {
               type: event.type,
+              question: event.question,
               winner: event.winner,
               options: event.options.map(({ label, count }) => ({ label, count })),
             };
@@ -555,6 +558,7 @@
           return;
         }
 
+        if (event.type === "chat.message" && event.text.trim().toLowerCase() === "!recap") return;
         if (event.type !== "chat.message" && event.type !== "raid") return;
         if (event.type === "chat.message" && voteOpen && Date.now() < voteEndsAt
             && /^\s*![1-4\u0661-\u0664]\s*$/.test(event.text)) return;

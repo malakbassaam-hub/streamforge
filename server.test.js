@@ -9,7 +9,7 @@ import test from "node:test";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 
-test("actual server binds locally, guards routes, and enforces vote API limits", async context => {
+for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshots and recap demo mode ${demo}`, async context => {
   // Isolate token storage and dotenv configuration from the developer's server.
   const directory = fs.mkdtempSync(path.join(root, "server-test-"));
 
@@ -23,7 +23,7 @@ test("actual server binds locally, guards routes, and enforces vote API limits",
   await new Promise(resolve => reservation.close(resolve));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: directory,
-    env: { ...process.env, HOST: "", PORT: String(port), DEMO: "0", DOTENV_CONFIG_PATH: path.join(directory, ".env") },
+    env: { ...process.env, HOST: "", PORT: String(port), DEMO: demo, DOTENV_CONFIG_PATH: path.join(directory, ".env") },
     stdio: ["ignore", "pipe", "pipe"],
   });
   context.after(async () => {
@@ -54,8 +54,9 @@ test("actual server binds locally, guards routes, and enforces vote API limits",
         resolve({ status, headers: res.headers });
         return;
       }
-      res.resume();
-      res.on("end", () => resolve({ status: res.statusCode, headers: res.headers }));
+      let text = "";
+      res.on("data", chunk => { text += chunk; });
+      res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, text }));
     });
     req.on("error", reject);
     req.end(body && JSON.stringify(body));
@@ -97,5 +98,17 @@ test("actual server binds locally, guards routes, and enforces vote API limits",
   assert.equal(snapshot.vote.question, valid.question);
   assert.deepEqual(snapshot.vote.options, valid.options.map(label => ({ label, count: 0 })));
   assert.deepEqual(snapshot.chat, []);
-  assert.deepEqual(snapshot.status, { live: false, demo: false });
+  assert.deepEqual(snapshot.status, { live: false, demo: demo === "1" });
+  const recap = await request("/api/demo/recap", { body: {} });
+  assert.equal(recap.status, demo === "1" ? 201 : 404);
+  const chatRecap = await request("/api/demo/chat", { body: { text: " !RECAP " } });
+  assert.equal(chatRecap.status, demo === "1" ? 429 : 404);
+  if (demo === "1") {
+    assert.equal(chatRecap.headers["retry-after"], "60");
+    const memory = JSON.parse((await request("/api/memory")).text).events;
+    assert.equal(memory.filter(event => event.type === "recap.card").length, 1);
+    assert.ok(memory.some(event => event.type === "vote.result" && event.question === valid.question));
+    assert.ok(!memory.some(event => event.type === "chat.message" && event.text.toLowerCase().includes("!recap")));
+  }
+  assert.equal((await request("/plugins/recap/plugin.html")).status, 200);
 });

@@ -39,6 +39,16 @@ test("overlay restores snapshots, filters only pure vote commands, and reflects 
   assert.equal(nodes.get("#vote-card").hidden, false);
   assert.equal(nodes.get("#vote-question").textContent, "Pick");
   assert.equal(nodes.get("#status").textContent, "Demo");
+  const forwarded = [];
+  nodes.get("#plugin-layer").querySelectorAll = () => [{
+    pluginManifest: { subscribes: ["recap.card"] },
+    contentWindow: { postMessage: event => forwarded.push(event) },
+  }];
+  send({ type: "recap.card", lines: ["Recap", "Nothing happened yet"], ts: 123, secret: "hidden" });
+  assert.equal(JSON.stringify(forwarded), JSON.stringify([
+    { type: "recap.card", lines: ["Recap", "Nothing happened yet"], ts: 123 },
+  ]));
+  assert.equal(nodes.get("#feed").children.length, 1);
   for (const text of ["!1", " !4 ", "!\u0661", "!\u0664"]) send({ type: "chat.message", user: "Viewer", text });
   assert.equal(nodes.get("#feed").children.length, 1);
   send({ type: "chat.message", user: "Viewer", text: "!1 yes" });

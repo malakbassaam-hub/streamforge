@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root { --accent: #5be0b0; --surface: #101820; --text: #f3f7f5; --muted: #b8c6c1; --border: #34453e; --fontFamily: sans-serif; --fontBody: 22px; --fontSmall: 16px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 4px; color: var(--text); font-family: var(--fontFamily); }
+    #card { padding: 18px 22px; border: 1px solid var(--border); border-top: 4px solid var(--accent); border-radius: 16px; background: var(--surface); }
+    #card[hidden] { display: none; }
+    #card.entering { animation: enter 280ms ease-out both; }
+    #card.exiting { animation: exit 240ms ease-in both; }
+    h1 { margin: 0 0 12px; color: var(--accent); font-size: var(--fontBody); }
+    p { margin: 7px 0; font-size: var(--fontSmall); line-height: 1.4; overflow-wrap: anywhere; }
+    p:first-child { color: var(--muted); }
+    @keyframes enter { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes exit { to { opacity: 0; transform: translateY(-6px); } }
+    @media (prefers-reduced-motion: reduce) { #card.entering, #card.exiting { animation-duration: 1ms; } }
+  </style>
+</head>
+<body>
+  <section id="card" aria-live="polite" hidden><h1>Stream recap</h1><div id="lines"></div></section>
+  <script>
+    const card = document.querySelector("#card");
+    const lines = document.querySelector("#lines");
+    let exitTimer;
+    let hideTimer;
+    window.addEventListener("message", event => {
+      if (event.source !== parent) return;
+      const data = event.data;
+      if (data?.type === "theme" && data.tokens) {
+        for (const key of ["accent", "surface", "text", "muted", "border", "fontFamily", "fontBody", "fontSmall"]) {
+          if (typeof data.tokens[key] === "string") document.documentElement.style.setProperty(`--${key}`, data.tokens[key]);
+        }
+        return;
+      }
+      if (data?.type !== "recap.card" || !Array.isArray(data.lines)) return;
+      clearTimeout(exitTimer);
+      clearTimeout(hideTimer);
+      lines.replaceChildren();
+      for (const line of data.lines) {
+        if (typeof line !== "string") continue;
+        const paragraph = document.createElement("p");
+        paragraph.dir = "auto";
+        paragraph.textContent = line;
+        lines.append(paragraph);
+      }
+      card.hidden = false;
+      card.className = "entering";
+      exitTimer = setTimeout(() => { card.className = "exiting"; }, 11_760);
+      hideTimer = setTimeout(() => { card.hidden = true; }, 12_000);
+    });
+  </script>
+</body>
+</html>

@@ -34,6 +34,7 @@ test("vote completion publishes the winner and final counts", (context) => {
 
   assert.deepEqual(events.at(-1), {
     type: "vote.result",
+    question: "Pick one",
     winner: "Second",
     options: [
       { label: "First", count: 0 },

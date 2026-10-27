@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const EVENT_TYPES = new Set(["chat.message", "raid", "vote.update", "vote.result"]);
+const EVENT_TYPES = new Set(["chat.message", "raid", "vote.update", "vote.result", "recap.card"]);
 const POSITIONS = new Set(["top-left", "top-right", "bottom-left", "bottom-right"]);
 const PLUGIN_NAME = /^[a-z0-9][a-z0-9-]*$/;
 
