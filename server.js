@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
+import { scanPlugins, watchPlugins } from "./core/plugins.js";
 import { sanitizeChatText } from "./core/safety.js";
 import { createVoteManager, VoteInputError } from "./core/vote.js";
 
@@ -14,6 +15,7 @@ const app = express();
 const port = Number(process.env.PORT) || 3000;
 const overlayPath = path.join(__dirname, "public", "overlay.html");
 const controlPath = path.join(__dirname, "public", "control.html");
+const pluginsPath = path.join(__dirname, "plugins");
 const clients = new Set();
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -103,6 +105,8 @@ function publish(event) {
   }
 }
 
+const pluginWatcher = watchPlugins(pluginsPath, () => publish({ type: "plugins.changed" }));
+
 const voteManager = createVoteManager(publish);
 const demoVoteOptions = process.env.DEMO === "1"
   ? {
@@ -130,6 +134,26 @@ app.get("/overlay", (_request, response) => {
 
 app.get("/control", (_request, response) => {
   response.sendFile(controlPath);
+});
+
+app.get("/api/plugins", (_request, response) => {
+  response.json(scanPlugins(pluginsPath));
+});
+
+app.get("/plugins/:name/plugin.html", (request, response, next) => {
+  const plugin = scanPlugins(pluginsPath).find(({ name }) => name === request.params.name);
+  if (!plugin) {
+    response.sendStatus(404);
+    return;
+  }
+
+  response.set(
+    "Content-Security-Policy",
+    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'",
+  );
+  response.sendFile(path.join(pluginsPath, plugin.name, "plugin.html"), (error) => {
+    if (error) next(error);
+  });
 });
 
 app.post("/api/vote/start", (request, response, next) => {
@@ -245,7 +269,8 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`StreamForge demo server listening at http://localhost:${port}`);
   launchEventSub();
 });
+server.on("close", () => pluginWatcher.close());

@@ -6,143 +6,283 @@
     <meta name="theme-color" content="#111820">
     <title>StreamForge Overlay</title>
     <style>
+      @font-face {
+        font-family: "Noto Sans Arabic";
+        src: url("./fonts/NotoSansArabic.ttf") format("truetype");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
       :root {
         color-scheme: dark;
-        font-family: "Segoe UI", sans-serif;
+        --color-accent: #5be0b0;
+        --color-surface: rgb(10 18 27 / 94%);
+        --color-text: #f3f7f5;
+        --color-muted: #b8c6c1;
+        --color-border: rgb(190 215 204 / 24%);
+        --color-accent-soft: rgb(91 224 176 / 12%);
+        --color-accent-glow: rgb(91 224 176 / 50%);
+        --color-track: rgb(184 198 193 / 20%);
+        --color-shadow: rgb(0 0 0 / 28%);
+        --radius-card: 18px;
+        --radius-pill: 999px;
+        --space-1: 8px;
+        --space-2: 12px;
+        --space-3: 16px;
+        --space-4: 24px;
+        --space-5: 32px;
+        --font-family: "Noto Sans Arabic", sans-serif;
+        --font-small: 16px;
+        --font-body: 22px;
+        --font-chat: 30px;
+        --font-option: 34px;
+        --font-question: 44px;
+        --shadow-card: 0 16px 48px var(--color-shadow);
+        font-family: var(--font-family);
         background: transparent;
-        color: #f3f6f4;
+        color: var(--color-text);
         font-synthesis: none;
       }
 
       * { box-sizing: border-box; }
 
       body {
+        width: 100vw;
+        height: 100vh;
         margin: 0;
-        padding: 24px;
+        overflow: hidden;
         background: transparent;
       }
 
-      main {
-        width: min(420px, 100%);
-        display: grid;
-        gap: 10px;
+      #plugin-layer {
+        position: fixed;
+        z-index: 3;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      #plugin-layer iframe {
+        position: absolute;
+        max-width: calc(100vw - 96px);
+        max-height: min(60vh, calc(100vh - 96px));
+        border: 0;
+        pointer-events: none;
+        animation: zone-in 280ms ease-out both;
       }
 
       header {
+        position: fixed;
+        z-index: 1;
+        top: 48px;
+        left: 48px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 0 2px 4px;
-        color: #d5e1dc;
-        font-size: 12px;
+        gap: var(--space-2);
+        color: var(--color-text);
+        font-size: var(--font-small);
         font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       #status {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        color: #a8b8b1;
-        font-size: 11px;
+        gap: var(--space-1);
+        color: var(--color-muted);
+        font-size: var(--font-small);
         font-weight: 500;
-        letter-spacing: 0;
-        text-transform: none;
       }
 
       #status::before {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #f0b95c;
+        width: 10px;
+        height: 10px;
+        border-radius: var(--radius-pill);
+        background: var(--color-muted);
         content: "";
       }
 
-      #status.connected::before { background: #75d6a1; }
+      #status.connected::before {
+        background: var(--color-accent);
+        box-shadow: 0 0 14px var(--color-accent-glow);
+      }
 
       #feed {
+        position: fixed;
+        z-index: 1;
+        bottom: 48px;
+        left: 48px;
+        width: min(720px, calc(100vw - 96px));
+        max-height: min(60vh, calc(100vh - 96px));
+        overflow: hidden;
         display: grid;
-        gap: 8px;
+        gap: var(--space-2);
       }
 
       #vote-card {
-        padding: 14px;
-        border: 1px solid rgb(207 224 216 / 20%);
-        border-radius: 6px;
-        background: rgb(17 24 32 / 94%);
-        box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+        position: fixed;
+        z-index: 1;
+        top: 50%;
+        right: 48px;
+        width: min(760px, calc(100vw - 96px));
+        max-height: calc(100vh - 96px);
+        overflow: auto;
+        padding: var(--space-5);
+        border: 1px solid var(--color-border);
+        border-top: 5px solid var(--color-accent);
+        border-radius: var(--radius-card);
+        background: var(--color-surface);
+        box-shadow: var(--shadow-card);
+        transform: translateY(-50%);
+        animation: vote-in 320ms ease-out both;
       }
 
       #vote-card[hidden] { display: none; }
-      #vote-question { margin: 0 0 8px; font-size: 15px; }
-      #vote-countdown { margin-bottom: 10px; color: #a8b8b1; font-size: 11px; }
-      #vote-options { display: grid; gap: 8px; }
+      #vote-card.is-exiting { animation: vote-out 240ms ease-in both; }
+      #vote-question {
+        margin: 0 0 var(--space-3);
+        font-size: var(--font-question);
+        font-weight: 750;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+      }
+      #vote-countdown {
+        margin-bottom: var(--space-1);
+        color: var(--color-muted);
+        font-size: var(--font-body);
+        font-variant-numeric: tabular-nums;
+      }
+      .countdown-track {
+        height: 8px;
+        margin-bottom: var(--space-4);
+        overflow: hidden;
+        border-radius: var(--radius-pill);
+        background: var(--color-track);
+      }
+      #countdown-fill {
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--color-accent);
+        transition: width 250ms linear;
+      }
+      #vote-options { display: grid; gap: var(--space-3); }
 
       .vote-option {
         display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 4px 10px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--space-1) var(--space-3);
         align-items: center;
-        font-size: 12px;
+        padding: var(--space-2);
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: var(--font-option);
+        line-height: 1.25;
+        transition: background-color 240ms ease, border-color 240ms ease, transform 240ms ease;
       }
 
+      .vote-label { overflow-wrap: anywhere; }
+      .vote-count {
+        color: var(--color-muted);
+        font-size: var(--font-body);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
       .vote-bar {
         grid-column: 1 / -1;
-        height: 6px;
+        height: 12px;
         overflow: hidden;
-        border-radius: 4px;
-        background: #29353c;
+        border-radius: var(--radius-pill);
+        background: var(--color-track);
       }
 
       .vote-fill {
         width: 0;
         height: 100%;
         border-radius: inherit;
-        background: #65caa2;
-        transition: width 180ms ease-out;
+        background: var(--color-accent);
+        transition: width 350ms cubic-bezier(.2, .8, .2, 1);
       }
 
-      .vote-option.winner { color: #ffd17f; font-weight: 700; }
-      .vote-option.winner .vote-fill { background: #f0b95c; }
+      .vote-option.winner {
+        border-color: var(--color-accent);
+        background: var(--color-accent-soft);
+        animation: winner-pop 420ms ease-out both;
+      }
 
       .event {
-        padding: 12px 14px;
-        border: 1px solid rgb(207 224 216 / 16%);
-        border-left: 3px solid #65caa2;
-        border-radius: 6px;
-        background: rgb(17 24 32 / 92%);
-        box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
-        animation: arrive 220ms ease-out both;
+        padding: var(--space-3) var(--space-4);
+        border: 1px solid var(--color-border);
+        border-inline-start: 5px solid var(--color-accent);
+        border-radius: var(--radius-card);
+        background: var(--color-surface);
+        box-shadow: var(--shadow-card);
+        animation: chat-in 280ms ease-out;
       }
 
-      .event.raid { border-left-color: #f0b95c; }
+      .event:nth-child(4) { opacity: 0.84; }
+      .event:nth-child(5) { opacity: 0.68; }
 
       .label {
-        margin-bottom: 4px;
-        color: #91a69c;
-        font-size: 10px;
+        margin-bottom: var(--space-1);
+        color: var(--color-accent);
+        font-size: var(--font-small);
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
       }
 
       .content {
         overflow-wrap: anywhere;
-        font-size: 14px;
-        line-height: 1.4;
+        font-size: var(--font-chat);
+        line-height: 1.35;
       }
 
-      .user { color: #8ce0b8; font-weight: 700; }
-      .raid .user { color: #ffd17f; }
+      .message { unicode-bidi: isolate; }
+      .user { color: var(--color-accent); font-weight: 750; }
 
-      @keyframes arrive {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+      @keyframes chat-in {
+        from { transform: translateY(-10px); }
+        to { transform: translateY(0); }
+      }
+      @keyframes vote-in {
+        from { opacity: 0.75; transform: translate(-12px, -50%); }
+        to { opacity: 1; transform: translate(0, -50%); }
+      }
+      @keyframes vote-out {
+        to { opacity: 0; transform: translate(-8px, -50%); }
+      }
+      @keyframes winner-pop {
+        45% { transform: scale(1.025); }
+        to { transform: scale(1); }
+      }
+      @keyframes zone-in {
+        from { opacity: 0.75; }
+        to { opacity: 1; }
+      }
+
+      @media (max-width: 760px), (max-height: 600px) {
+        header { top: 48px; left: 48px; }
+        #feed { bottom: 48px; left: 48px; width: min(48vw, 560px); }
+        #vote-card {
+          right: 48px;
+          width: min(48vw, 640px);
+          max-height: calc(100vh - 96px);
+          padding: var(--space-4);
+        }
+        #vote-question { font-size: clamp(30px, 4vw, var(--font-question)); }
+        .vote-option { font-size: clamp(24px, 3vw, var(--font-option)); }
+        .content { font-size: clamp(20px, 2.5vw, var(--font-chat)); }
+        #plugin-layer iframe { max-width: calc(100vw - 96px); }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: 0.01ms !important; }
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
@@ -155,26 +295,139 @@
       <section id="vote-card" aria-live="polite" aria-label="Live vote" hidden>
         <h2 id="vote-question"></h2>
         <div id="vote-countdown"></div>
+        <div class="countdown-track" aria-hidden="true"><div id="countdown-fill"></div></div>
         <div id="vote-options"></div>
       </section>
       <section id="feed" aria-live="polite" aria-label="Recent events"></section>
     </main>
+    <section id="plugin-layer" aria-label="Plugins"></section>
     <script>
       const feed = document.querySelector("#feed");
       const status = document.querySelector("#status");
       const voteCard = document.querySelector("#vote-card");
       const voteQuestion = document.querySelector("#vote-question");
       const voteCountdown = document.querySelector("#vote-countdown");
+      const countdownTrack = document.querySelector(".countdown-track");
+      const countdownFill = document.querySelector("#countdown-fill");
       const voteOptions = document.querySelector("#vote-options");
+      const pluginLayer = document.querySelector("#plugin-layer");
       const source = new EventSource("/events");
       let countdownTimer;
       let resultTimer;
+      let voteHideTimer;
+      let voteEndsAt;
+      let voteStartedAt;
+      const positionOffsets = new Map();
+
+      function getThemeTokens() {
+        const styles = getComputedStyle(document.documentElement);
+        return {
+          accent: styles.getPropertyValue("--color-accent").trim(),
+          surface: styles.getPropertyValue("--color-surface").trim(),
+          text: styles.getPropertyValue("--color-text").trim(),
+          muted: styles.getPropertyValue("--color-muted").trim(),
+          border: styles.getPropertyValue("--color-border").trim(),
+          accentSoft: styles.getPropertyValue("--color-accent-soft").trim(),
+          fontFamily: styles.getPropertyValue("--font-family").trim(),
+          fontSmall: styles.getPropertyValue("--font-small").trim(),
+          fontBody: styles.getPropertyValue("--font-body").trim(),
+          fontChat: styles.getPropertyValue("--font-chat").trim(),
+          fontOption: styles.getPropertyValue("--font-option").trim(),
+          fontQuestion: styles.getPropertyValue("--font-question").trim(),
+        };
+      }
+
+      function createPluginFrame(plugin) {
+        const iframe = document.createElement("iframe");
+        const offset = positionOffsets.get(plugin.position) || 48;
+        iframe.title = plugin.name;
+        iframe.pluginManifest = plugin;
+        iframe.setAttribute("sandbox", "allow-scripts");
+        iframe.src = `/plugins/${encodeURIComponent(plugin.name)}/plugin.html`;
+        iframe.style.width = `${plugin.width}px`;
+        iframe.style.height = `${plugin.height}px`;
+        iframe.style[plugin.position.split("-")[0]] = `${offset}px`;
+        iframe.style[plugin.position.split("-")[1]] = `${offset}px`;
+        iframe.addEventListener("load", () => {
+          iframe.contentWindow?.postMessage({ type: "theme", tokens: getThemeTokens() }, "*");
+        });
+        positionOffsets.set(plugin.position, offset + plugin.height + 12);
+        pluginLayer.append(iframe);
+      }
+
+      async function loadPlugins() {
+        try {
+          const response = await fetch("/api/plugins");
+          if (!response.ok) throw new Error(`Plugin list request failed (${response.status}).`);
+          const plugins = await response.json();
+          if (!Array.isArray(plugins)) throw new Error("Plugin list response was invalid.");
+          pluginLayer.replaceChildren();
+          positionOffsets.clear();
+          for (const plugin of plugins) createPluginFrame(plugin);
+        } catch (error) {
+          console.error("Unable to load plugins:", error);
+        }
+      }
+
+      function getPluginEvent(event) {
+        switch (event.type) {
+          case "chat.message":
+            return {
+              type: event.type,
+              user: event.user,
+              text: event.text,
+              ts: event.ts,
+            };
+          case "raid":
+            return {
+              type: event.type,
+              user: event.user,
+              viewers: event.viewers,
+              timestamp: event.timestamp,
+            };
+          case "vote.update":
+            return {
+              type: event.type,
+              question: event.question,
+              options: event.options.map(({ label, count }) => ({ label, count })),
+              endsAt: event.endsAt,
+            };
+          case "vote.result":
+            return {
+              type: event.type,
+              winner: event.winner,
+              options: event.options.map(({ label, count }) => ({ label, count })),
+            };
+          default:
+            return null;
+        }
+      }
+
+      function forwardToPlugins(event) {
+        const pluginEvent = getPluginEvent(event);
+        if (!pluginEvent) return;
+
+        for (const iframe of pluginLayer.querySelectorAll("iframe")) {
+          const plugin = iframe.pluginManifest;
+          if (plugin?.subscribes.includes(event.type) && iframe.contentWindow) {
+            iframe.contentWindow.postMessage(pluginEvent, "*");
+          }
+        }
+      }
 
       function showVote(event) {
         clearInterval(countdownTimer);
         clearTimeout(resultTimer);
+        clearTimeout(voteHideTimer);
+        voteCard.classList.remove("is-exiting");
         voteCard.hidden = false;
+        countdownTrack.hidden = false;
+        if (voteEndsAt !== event.endsAt) {
+          voteEndsAt = event.endsAt;
+          voteStartedAt = Date.now();
+        }
         voteQuestion.textContent = event.question;
+        voteQuestion.dir = "auto";
         voteCountdown.textContent = "";
         voteOptions.replaceChildren();
 
@@ -187,19 +440,31 @@
           const fill = document.createElement("div");
 
           row.className = "vote-option";
+          label.className = "vote-label";
+          label.dir = "auto";
           label.textContent = option.label;
-          count.textContent = String(option.count);
+          count.className = "vote-count";
+          count.dir = "auto";
+          const percentage = totalVotes ? Math.round((option.count / totalVotes) * 100) : 0;
+          count.textContent = `${option.count} · ${percentage}%`;
           bar.className = "vote-bar";
           fill.className = "vote-fill";
-          fill.style.width = `${totalVotes ? (option.count / totalVotes) * 100 : 0}%`;
+          fill.style.width = "0%";
           bar.append(fill);
           row.append(label, count, bar);
           voteOptions.append(row);
+          requestAnimationFrame(() => {
+            if (fill.isConnected) fill.style.width = `${percentage}%`;
+          });
         }
 
         function updateCountdown() {
-          const secondsLeft = Math.max(0, Math.ceil((event.endsAt - Date.now()) / 1000));
+          const now = Date.now();
+          const secondsLeft = Math.max(0, Math.ceil((event.endsAt - now) / 1000));
           voteCountdown.textContent = `Voting ends in ${secondsLeft}s`;
+          const totalTime = Math.max(1, event.endsAt - voteStartedAt);
+          const remaining = Math.max(0, Math.min(1, (event.endsAt - now) / totalTime));
+          countdownFill.style.width = `${remaining * 100}%`;
         }
 
         updateCountdown();
@@ -210,6 +475,8 @@
         clearInterval(countdownTimer);
         if (event.winner === null) {
           voteCountdown.textContent = "No votes";
+          countdownTrack.hidden = true;
+          voteOptions.replaceChildren();
         } else {
           voteCountdown.textContent = "Vote complete";
           const winners = Array.isArray(event.winner) ? event.winner : [event.winner];
@@ -220,7 +487,10 @@
           }
         }
         resultTimer = setTimeout(() => {
-          voteCard.hidden = true;
+          voteCard.classList.add("is-exiting");
+          voteHideTimer = setTimeout(() => {
+            voteCard.hidden = true;
+          }, 240);
         }, 8000);
       }
 
@@ -234,8 +504,15 @@
         status.classList.remove("connected");
       };
 
+      loadPlugins();
+
       source.onmessage = ({ data }) => {
         const event = JSON.parse(data);
+        if (event.type === "plugins.changed") {
+          loadPlugins();
+          return;
+        }
+        forwardToPlugins(event);
         if (event.type === "vote.update") {
           showVote(event);
           return;
@@ -249,25 +526,31 @@
         const label = document.createElement("div");
         const content = document.createElement("div");
         const user = document.createElement("span");
+        const message = document.createElement("span");
 
-        item.className = `event ${event.type}`;
+        item.className = "event";
         label.className = "label";
         content.className = "content";
         user.className = "user";
+        message.className = "message";
+        content.dir = "auto";
+        user.dir = "auto";
+        message.dir = "auto";
         user.textContent = event.user;
+        message.textContent = event.text ?? "";
 
         if (event.type === "raid") {
           label.textContent = "Raid";
           content.append(user, document.createTextNode(` brought ${event.viewers} viewers`));
         } else {
           label.textContent = "Chat";
-          content.append(user, document.createTextNode(`: ${event.text}`));
+          content.append(user, document.createTextNode(": "), message);
         }
 
         item.append(label, content);
         feed.prepend(item);
 
-        while (feed.children.length > 8) {
+        while (feed.children.length > 5) {
           feed.lastElementChild.remove();
         }
       };

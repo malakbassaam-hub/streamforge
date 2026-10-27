@@ -1,0 +1,8 @@
+{
+  "name": "hello",
+  "description": "Displays the latest chat message.",
+  "subscribes": ["chat.message"],
+  "width": 320,
+  "height": 100,
+  "position": "top-right"
+}

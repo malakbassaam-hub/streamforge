@@ -5,73 +5,210 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>StreamForge Vote Control</title>
     <style>
+      @font-face {
+        font-family: "Noto Sans Arabic";
+        src: url("./fonts/NotoSansArabic.ttf") format("truetype");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
       :root {
         color-scheme: dark;
-        font-family: "Segoe UI", sans-serif;
-        background: #111820;
-        color: #f3f6f4;
+        --color-accent: #5be0b0;
+        --color-surface: rgb(10 18 27 / 94%);
+        --color-text: #f3f7f5;
+        --color-muted: #b8c6c1;
+        --color-border: rgb(190 215 204 / 24%);
+        --color-page: #101820;
+        --color-page-glow: rgb(91 224 176 / 11%);
+        --color-input: rgb(5 11 17 / 62%);
+        --color-button-text: #092018;
+        --color-accent-focus: rgb(91 224 176 / 18%);
+        --color-shadow: rgb(0 0 0 / 28%);
+        --radius-card: 18px;
+        --radius-input: 12px;
+        --space-1: 8px;
+        --space-2: 12px;
+        --space-3: 16px;
+        --space-4: 24px;
+        --space-5: 32px;
+        --font-family: "Noto Sans Arabic", sans-serif;
+        --font-small: 16px;
+        --font-body: 18px;
+        --font-title: 32px;
+        --shadow-card: 0 16px 48px var(--color-shadow);
+        font-family: var(--font-family);
+        color: var(--color-text);
+        font-synthesis: none;
+        background: var(--color-page);
       }
+
+      * { box-sizing: border-box; }
 
       body {
-        width: min(480px, 100%);
-        margin: 0 auto;
-        padding: 24px;
+        min-height: 100vh;
+        margin: 0;
+        padding: clamp(20px, 5vw, 56px);
+        background:
+          radial-gradient(ellipse at 10% 0%, var(--color-page-glow), transparent 34rem),
+          var(--color-page);
+        color: var(--color-text);
       }
 
-      form { display: grid; gap: 12px; }
-      label { display: grid; gap: 5px; color: #c8d5cf; font-size: 13px; }
+      main {
+        width: min(720px, 100%);
+        margin: 0 auto;
+        padding: clamp(22px, 5vw, 44px);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        background: var(--color-surface);
+        box-shadow: var(--shadow-card);
+        animation: panel-in 320ms ease-out both;
+      }
+
+      .eyebrow {
+        margin: 0 0 var(--space-1);
+        color: var(--color-accent);
+        font-size: var(--font-small);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: var(--font-title);
+        line-height: 1.2;
+      }
+
+      .intro {
+        margin: var(--space-2) 0 var(--space-4);
+        color: var(--color-muted);
+        font-size: var(--font-body);
+        line-height: 1.5;
+      }
+
+      form { display: grid; gap: var(--space-3); }
+
+      .options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+
+      label {
+        display: grid;
+        gap: var(--space-1);
+        color: var(--color-muted);
+        font-size: var(--font-small);
+        font-weight: 600;
+      }
+
       input {
         width: 100%;
-        padding: 9px 10px;
-        border: 1px solid #46574f;
-        border-radius: 5px;
-        background: #1b252d;
-        color: inherit;
+        min-height: 52px;
+        padding: 10px 14px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-input);
+        outline: none;
+        background: var(--color-input);
+        color: var(--color-text);
         font: inherit;
+        font-size: var(--font-body);
+        transition: border-color 220ms ease, box-shadow 220ms ease;
       }
+
+      input:focus-visible {
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px var(--color-accent-focus);
+      }
+
+      .duration { max-width: 220px; }
+
       button {
-        padding: 10px;
+        min-height: 56px;
+        margin-top: var(--space-1);
+        padding: var(--space-2) var(--space-4);
         border: 0;
-        border-radius: 5px;
-        background: #65caa2;
-        color: #102018;
+        border-radius: var(--radius-input);
+        background: var(--color-accent);
+        color: var(--color-button-text);
         font: inherit;
-        font-weight: 700;
+        font-size: var(--font-body);
+        font-weight: 800;
         cursor: pointer;
+        transition: transform 200ms ease, filter 200ms ease;
       }
-      #status { min-height: 1.3em; color: #a8b8b1; }
+
+      button:hover { filter: brightness(1.06); }
+      button:active { transform: scale(0.99); }
+      button:focus-visible { outline: 3px solid var(--color-text); outline-offset: 3px; }
+
+      #status {
+        min-height: 1.5em;
+        color: var(--color-muted);
+        font-size: var(--font-body);
+      }
+
+      @keyframes panel-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (max-width: 560px) {
+        body { padding: 16px; }
+        main { padding: 22px 18px; }
+        .options { grid-template-columns: 1fr; gap: var(--space-2); }
+        .duration { max-width: none; }
+        h1 { font-size: 28px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <h1>Start a vote</h1>
-    <form id="vote-form">
-      <label>
-        Question
-        <input name="question" required maxlength="200">
-      </label>
-      <label>
-        Option 1
-        <input name="option" required maxlength="80">
-      </label>
-      <label>
-        Option 2
-        <input name="option" required maxlength="80">
-      </label>
-      <label>
-        Option 3 (optional)
-        <input name="option" maxlength="80">
-      </label>
-      <label>
-        Option 4 (optional)
-        <input name="option" maxlength="80">
-      </label>
-      <label>
-        Duration (seconds)
-        <input name="durationSeconds" type="text" inputmode="numeric" value="30" required>
-      </label>
-      <button type="submit">Start vote</button>
-      <div id="status" role="status" aria-live="polite"></div>
-    </form>
+    <main>
+      <p class="eyebrow">StreamForge · Live control</p>
+      <h1>Start a community vote</h1>
+      <p class="intro">Choose a question, add two to four options, and invite chat to vote.</p>
+      <form id="vote-form">
+        <label>
+          Question
+          <input name="question" dir="auto" required maxlength="200" placeholder="What should happen next?">
+        </label>
+        <div class="options">
+          <label>
+            Option 1
+            <input name="option" dir="auto" required maxlength="80" placeholder="First choice">
+          </label>
+          <label>
+            Option 2
+            <input name="option" dir="auto" required maxlength="80" placeholder="Second choice">
+          </label>
+          <label>
+            Option 3 (optional)
+            <input name="option" dir="auto" maxlength="80">
+          </label>
+          <label>
+            Option 4 (optional)
+            <input name="option" dir="auto" maxlength="80">
+          </label>
+        </div>
+        <label class="duration">
+          Duration (10–300 seconds)
+          <input name="durationSeconds" type="text" inputmode="numeric" value="30" required>
+        </label>
+        <button type="submit">Start vote</button>
+        <div id="status" role="status" aria-live="polite"></div>
+      </form>
+    </main>
     <script type="module">
       import { parseDurationSeconds } from "./control.js";
 

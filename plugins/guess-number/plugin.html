@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body {
+        margin: 0;
+        color: #f3f6f4;
+        font: 14px "Segoe UI", sans-serif;
+      }
+      #game {
+        padding: 14px 16px;
+        border: 1px solid #f0b95c;
+        border-radius: 8px;
+        background: rgb(17 24 32 / 94%);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+      }
+      h1 { margin: 0 0 6px; font-size: 15px; }
+      #status { color: #c8d5cf; }
+    </style>
+  </head>
+  <body>
+    <section id="game">
+      <h1>Guess the number (1–100)</h1>
+      <div id="status">Send a number in chat. New number every 60 seconds.</div>
+    </section>
+    <script>
+      const status = document.querySelector("#status");
+      let secret = Math.floor(Math.random() * 100) + 1;
+      let guesses = [];
+
+      setInterval(() => {
+        if (guesses.length) {
+          const closest = Math.min(...guesses.map(({ value }) => Math.abs(value - secret)));
+          const winners = guesses
+            .filter(({ value }) => Math.abs(value - secret) === closest)
+            .map(({ user, value }) => `${user} (${value})`);
+          status.textContent = `Closest: ${winners.join(", ")}. New round starts!`;
+        } else {
+          status.textContent = "No guesses this round. New round starts!";
+        }
+        secret = Math.floor(Math.random() * 100) + 1;
+        guesses = [];
+      }, 60_000);
+
+      window.addEventListener("message", ({ data }) => {
+        if (data?.type !== "chat.message" || typeof data.text !== "string") return;
+        const match = /^\s*(\d{1,3})\s*$/.exec(data.text);
+        if (!match) return;
+        const value = Number(match[1]);
+        if (value < 1 || value > 100) return;
+        guesses.push({ user: data.user, value });
+        status.textContent = `${data.user} guessed ${value}.`;
+      });
+    </script>
+  </body>
+</html>

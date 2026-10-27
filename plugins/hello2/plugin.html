@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body {
+        margin: 0;
+        color: #f3f6f4;
+        font: 15px "Segoe UI", sans-serif;
+      }
+      #message {
+        padding: 14px 16px;
+        border: 1px solid #65caa2;
+        border-radius: 8px;
+        background: rgb(17 24 32 / 94%);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+        overflow-wrap: anywhere;
+      }
+      strong { color: #8ce0b8; }
+    </style>
+  </head>
+  <body>
+    <div id="message">Hello 2 - Waiting for chat...</div>
+    <script>
+      const message = document.querySelector("#message");
+      window.addEventListener("message", ({ data }) => {
+        if (data?.type !== "chat.message") return;
+        message.replaceChildren();
+        const user = document.createElement("strong");
+        user.textContent = data.user;
+        message.append(user, document.createTextNode(`: ${data.text}`));
+      });
+    </script>
+  </body>
+</html>
