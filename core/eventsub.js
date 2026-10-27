@@ -2,7 +2,7 @@ import WebSocket from "ws";
 const WS_URL = "wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30";
 const HELIX = "https://api.twitch.tv/helix";
 let running = false;
-export function startEventSub({ clientId, getValidToken, onEvent }) {
+export function startEventSub({ clientId, getValidToken, onEvent, onStatusChange = () => {} }) {
   if (running) return;
   running = true;
   let user = null;
@@ -76,6 +76,7 @@ export function startEventSub({ clientId, getValidToken, onEvent }) {
             ws.close();
           }
         }
+        if (ws === current && ws.readyState === WebSocket.OPEN) onStatusChange(true);
       } else if (type === "notification") {
         const subType = msg.metadata.subscription_type;
         const ev = msg.payload.event;
@@ -97,6 +98,7 @@ export function startEventSub({ clientId, getValidToken, onEvent }) {
     });
     ws.on("close", (code) => {
       if (current && ws !== current) return;
+      onStatusChange(false);
       current = null;
       clearTimeout(watchdog);
       console.warn(`[eventsub] closed (${code}), retrying in 5s`);

@@ -79,4 +79,23 @@ test("actual server binds locally, guards routes, and enforces vote API limits",
   ]) assert.equal((await request("/api/vote/start", { body })).status, 400);
   assert.equal((await request("/api/vote/start", { body: valid })).status, 201);
   assert.equal((await request("/api/vote/start", { body: { ...valid, durationSeconds: 300 } })).status, 201);
+  const snapshot = await new Promise((resolve, reject) => {
+    const req = http.get({ hostname: "127.0.0.1", port, path: "/events", headers: { Host: "localhost" } }, res => {
+      let buffer = "";
+      res.on("data", chunk => {
+        buffer += chunk;
+        if (!buffer.includes("\n\n")) return;
+        res.destroy();
+        resolve(JSON.parse(buffer.split("\n\n")[0].slice(6)));
+      });
+    });
+    req.on("error", reject);
+    req.setTimeout(3000, () => req.destroy(new Error("Snapshot timed out")));
+  });
+  assert.equal(snapshot.type, "snapshot");
+  assert.equal(snapshot.vote.type, "vote.update");
+  assert.equal(snapshot.vote.question, valid.question);
+  assert.deepEqual(snapshot.vote.options, valid.options.map(label => ({ label, count: 0 })));
+  assert.deepEqual(snapshot.chat, []);
+  assert.deepEqual(snapshot.status, { live: false, demo: false });
 });

@@ -8,6 +8,7 @@ import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
 import { scanPlugins, watchPlugins } from "./core/plugins.js";
 import { createEventHandler } from "./core/events.js";
+import { createSnapshotStore } from "./core/snapshot.js";
 import { requireLocalHost } from "./core/host.js";
 import { createVoteManager, VoteInputError } from "./core/vote.js";
 
@@ -19,6 +20,7 @@ const overlayPath = path.join(__dirname, "public", "overlay.html");
 const controlPath = path.join(__dirname, "public", "control.html");
 const pluginsPath = path.join(__dirname, "plugins");
 const clients = new Set();
+const snapshotStore = createSnapshotStore();
 app.use(requireLocalHost);
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -98,6 +100,7 @@ async function getValidToken() {
 
 // ---- Publishing events to memory + all connected overlays ----
 function publish(event) {
+  snapshotStore.record(event);
   addEventToMemory(event);
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const client of clients) {
@@ -179,7 +182,8 @@ app.get("/events", (_request, response) => {
     Connection: "keep-alive",
   });
   response.flushHeaders();
-  response.write(": connected\n\n");
+  voteManager.isOpen(); // Finish an expired vote before taking its snapshot.
+  response.write(`data: ${JSON.stringify(snapshotStore.getSnapshot())}\n\n`);
   clients.add(response);
 
   response.on("close", () => {
@@ -205,12 +209,15 @@ app.get("/auth/status", async (_req, res) => {
 if (process.env.DEMO !== "0") {
   simulator.events.on("event", handleEvent);
   simulator.start();
+  publish(snapshotStore.setStatus({ demo: true }));
 }
 
 // ---- Real Twitch events ----
 function launchEventSub() {
   if (!twitchTokens) return;
-  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: handleEvent });
+  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: handleEvent,
+    onStatusChange: live => publish(snapshotStore.setStatus({ live })),
+  });
 }
 
 // ---- Twitch OAuth ----
