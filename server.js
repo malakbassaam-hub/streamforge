@@ -7,16 +7,19 @@ import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
 import { scanPlugins, watchPlugins } from "./core/plugins.js";
-import { sanitizeChatText } from "./core/safety.js";
+import { createEventHandler } from "./core/events.js";
+import { requireLocalHost } from "./core/host.js";
 import { createVoteManager, VoteInputError } from "./core/vote.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT) || 3000;
+const host = process.env.HOST || "127.0.0.1";
 const overlayPath = path.join(__dirname, "public", "overlay.html");
 const controlPath = path.join(__dirname, "public", "control.html");
 const pluginsPath = path.join(__dirname, "plugins");
 const clients = new Set();
+app.use(requireLocalHost);
 app.use(express.static(path.join(__dirname, "public")));
 
 const { TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI } = process.env;
@@ -95,11 +98,8 @@ async function getValidToken() {
 
 // ---- Publishing events to memory + all connected overlays ----
 function publish(event) {
-  const safeEvent = event.type === "chat.message" || event.type === "chat"
-    ? { ...event, text: sanitizeChatText(event.text) }
-    : event;
-  addEventToMemory(safeEvent);
-  const payload = `data: ${JSON.stringify(safeEvent)}\n\n`;
+  addEventToMemory(event);
+  const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const client of clients) {
     client.write(payload);
   }
@@ -111,17 +111,12 @@ const voteManager = createVoteManager(publish);
 const demoVoteOptions = process.env.DEMO === "1"
   ? {
       isVoteOpen: () => voteManager.isOpen(),
-      onDemoVote: (user, command) => voteManager.handleChatMessage(user, command),
+      onDemoVote: (user, text) => handleEvent({ type: "chat.message", user, text, ts: Date.now() }),
     }
   : {};
 const simulator = createDemoSimulator(demoVoteOptions);
 
-function handleEvent(event) {
-  if (event.type === "chat.message") {
-    voteManager.handleChatMessage(event.user, event.text);
-  }
-  publish(event);
-}
+const handleEvent = createEventHandler(voteManager, publish);
 
 // ---- Basic routes ----
 app.get("/", (_request, response) => {
@@ -269,8 +264,8 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
-const server = app.listen(port, () => {
-  console.log(`StreamForge demo server listening at http://localhost:${port}`);
+const server = app.listen(port, host, () => {
+  console.log(`StreamForge demo server listening at http://${host}:${port}`);
   launchEventSub();
 });
 server.on("close", () => pluginWatcher.close());

@@ -76,24 +76,24 @@ export function createVoteManager(publish) {
 
   return {
     start(question, options, durationSeconds) {
-      if (typeof question !== "string" || !question.trim()) {
-        throw new VoteInputError("Question must be a non-empty string.");
+      if (typeof question !== "string" || !question.trim() || question.length > 120) {
+        throw new VoteInputError("Question must be a non-empty string of at most 120 characters.");
       }
       if (!Array.isArray(options) || options.length < 2 || options.length > 4) {
         throw new VoteInputError("Provide between 2 and 4 options.");
       }
 
       const labels = options.map((option) => {
-        if (typeof option !== "string" || !option.trim()) {
-          throw new VoteInputError("Each option must be a non-empty string.");
+        if (typeof option !== "string" || !option.trim() || option.length > 40) {
+          throw new VoteInputError("Each option must be a non-empty string of at most 40 characters.");
         }
         return option.trim();
       });
       if (new Set(labels.map((label) => label.toLowerCase())).size !== labels.length) {
         throw new VoteInputError("Options must be unique.");
       }
-      if (typeof durationSeconds !== "number" || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-        throw new VoteInputError("Duration must be a positive number of seconds.");
+      if (typeof durationSeconds !== "number" || !Number.isFinite(durationSeconds) || durationSeconds < 10 || durationSeconds > 300) {
+        throw new VoteInputError("Duration must be from 10 to 300 seconds.");
       }
       const endsAt = Date.now() + durationSeconds * 1000;
       if (!Number.isFinite(endsAt) || endsAt > 8_640_000_000_000_000) {

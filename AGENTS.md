@@ -7,5 +7,5 @@ StreamForge is a modular, AI-powered interactive platform for Twitch creators us
 - **Server**: Local Node.js server handling routing, API endpoints, and WebSocket/EventSub integration.
 - **Overlay**: Browser-based OBS overlays served locally.
 - /plugins/<name>/: manifest.json, plugin.html (single self-contained HTML file). Plugins run inside a sandboxed iframe in the overlay and receive events only via postMessage. They never touch the server.
-- **Safety Layer**: Filters and sanitizes chat messages before processing or rendering.
+- **Safety Layer**: Trims and truncates chat text to 200 characters before vote processing and rendering. A real content filter is planned.
 - **Demo Mode**: Built-in simulation mode for testing overlays without active live streams.

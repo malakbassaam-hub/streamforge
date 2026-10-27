@@ -8,8 +8,8 @@
 7. `plugin.html` must contain all HTML, CSS, and JavaScript inline; no external requests.
 8. Plugins run in an iframe sandboxed with scripts only and a restrictive CSP.
 9. Receive events with `window.addEventListener("message", ({data}) => { ... })`.
-10. Messages are `{type, ...safeFields}`; chat has `user`, `text`, `ts`.
-11. Raid has `user`, `viewers`, `timestamp`; vote updates have `question`, `options`, `endsAt`.
+10. Messages are `{type, ...safeFields}`; chat has `user`, `text`, `ts`. Both chat and raid `ts` values are Unix time in milliseconds.
+11. Raid has `user` (raiding channel name), `viewers`, `ts`; vote updates have `question`, `options`, `endsAt`.
 12. Vote results have `winner` (string, string array for ties, or null) and `options`.
 13. Only subscribed events are forwarded, and tokens or other fields are never sent.
 14. After load, the overlay also sends `{type:"theme", tokens:{accent,surface,text,muted,border,accentSoft,fontFamily,fontSmall,fontBody,fontChat,fontOption,fontQuestion}}`.

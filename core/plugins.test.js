@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { scanPlugins } from "./plugins.js";
+
+test("hello2 has a matching manifest and is discoverable", () => {
+  const plugins = scanPlugins(fileURLToPath(new URL("../plugins", import.meta.url)));
+  assert.ok(plugins.some(plugin => plugin.name === "hello2"));
+});
 
 test("scanPlugins returns valid plugins and skips missing or invalid manifests", (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "streamforge-plugins-"));

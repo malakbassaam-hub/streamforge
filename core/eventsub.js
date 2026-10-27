@@ -83,11 +83,11 @@ export function startEventSub({ clientId, getValidToken, onEvent }) {
           onEvent({
             type: "chat.message",
             user: ev.chatter_user_name,
-            text: String(ev.message?.text ?? "").trim().slice(0, 200),
+            text: ev.message?.text ?? "",
             ts: Date.now(),
           });
         } else if (subType === "channel.raid") {
-          onEvent({ type: "raid", from: ev.from_broadcaster_user_name, viewers: ev.viewers, ts: Date.now() });
+          onEvent({ type: "raid", user: ev.from_broadcaster_user_name, viewers: ev.viewers, ts: Date.now() });
         }
       } else if (type === "session_reconnect") {
         connect(msg.payload.session.reconnect_url, true);

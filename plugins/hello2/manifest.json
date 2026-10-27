@@ -1,5 +1,5 @@
 {
-  "name": "hello",
+  "name": "hello2",
   "description": "Displays the latest chat message.",
   "subscribes": ["chat.message"],
   "width": 320,

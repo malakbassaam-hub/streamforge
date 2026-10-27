@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createVoteManager, VoteInputError } from "./vote.js";
 
-test("votes can be changed once per user and invalid options are ignored", () => {
+test("votes can be changed once per user and invalid options are ignored", (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"] });
   const events = [];
   const manager = createVoteManager((event) => events.push(event));
 
-  manager.start("Pick one", ["First", "Second", "Third"], 0.05);
+  manager.start("Pick one", ["First", "Second", "Third"], 10);
   assert.equal(manager.handleChatMessage("Viewer", "!4"), false);
   assert.equal(manager.handleChatMessage("Viewer", "hello !1"), false);
   assert.equal(manager.handleChatMessage("Viewer", "!1"), true);
@@ -21,14 +22,15 @@ test("votes can be changed once per user and invalid options are ignored", () =>
   assert.equal(manager.isOpen(), true);
 });
 
-test("vote completion publishes the winner and final counts", async () => {
+test("vote completion publishes the winner and final counts", (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"] });
   const events = [];
   const manager = createVoteManager((event) => events.push(event));
 
-  manager.start("Pick one", ["First", "Second"], 0.02);
+  manager.start("Pick one", ["First", "Second"], 10);
   manager.handleChatMessage("Viewer A", "!2");
   manager.handleChatMessage("Viewer B", "!2");
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  context.mock.timers.tick(10_000);
 
   assert.deepEqual(events.at(-1), {
     type: "vote.result",
@@ -41,26 +43,28 @@ test("vote completion publishes the winner and final counts", async () => {
   assert.equal(manager.isOpen(), false);
 });
 
-test("empty votes have no winner and ties publish all co-winners", async () => {
+test("empty votes have no winner and ties publish all co-winners", (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"] });
   const events = [];
   const manager = createVoteManager((event) => events.push(event));
 
-  manager.start("Pick one", ["First", "Second"], 0.01);
-  await new Promise((resolve) => setTimeout(resolve, 25));
+  manager.start("Pick one", ["First", "Second"], 10);
+  context.mock.timers.tick(10_000);
   assert.equal(events.at(-1).winner, null);
 
-  manager.start("Pick one", ["First", "Second", "Third"], 0.01);
+  manager.start("Pick one", ["First", "Second", "Third"], 10);
   manager.handleChatMessage("Viewer A", "!1");
   manager.handleChatMessage("Viewer B", "!2");
-  await new Promise((resolve) => setTimeout(resolve, 25));
+  context.mock.timers.tick(10_000);
   assert.deepEqual(events.at(-1).winner, ["First", "Second"]);
 });
 
-test("Arabic-Indic vote digits and trailing text are accepted", () => {
+test("Arabic-Indic vote digits and trailing text are accepted", (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"] });
   const events = [];
   const manager = createVoteManager((event) => events.push(event));
 
-  manager.start("Pick one", ["First", "Second"], 1);
+  manager.start("Pick one", ["First", "Second"], 10);
 
   assert.equal(manager.handleChatMessage("Viewer A", "  !١ yes  "), true);
   assert.equal(manager.handleChatMessage("Viewer B", "!2 YES"), true);

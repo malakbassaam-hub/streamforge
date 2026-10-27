@@ -27,7 +27,7 @@ export function createDemoSimulator({ isVoteOpen, onDemoVote } = {}) {
         type: "raid",
         user: pick(raiders),
         viewers: Math.floor(Math.random() * 91) + 10,
-        timestamp: new Date().toISOString(),
+        ts: Date.now(),
       });
       return;
     }
@@ -36,7 +36,7 @@ export function createDemoSimulator({ isVoteOpen, onDemoVote } = {}) {
       type: "chat.message",
       user: pick(chatters),
       text: pick(chatMessages),
-      ts: new Date().toISOString(),
+      ts: Date.now(),
     });
 
     if (onDemoVote && isVoteOpen?.()) {
