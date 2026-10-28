@@ -7,7 +7,8 @@ function fakeDocument() {
   function element(tag) {
     let text = "";
     return {
-      tag, children: [], disabled: false, listeners: {},
+      tag, children: [], disabled: false, listeners: {}, value: "",
+      focus() {}, select() {},
       set textContent(value) { text = String(value); this.children = []; },
       get textContent() { return text + this.children.map(child => child.textContent).join(""); },
       append(child) { this.children.push(child); },
@@ -122,4 +123,45 @@ test("test button reports network failures and becomes usable again", async () =
   await panel.sendTest();
   assert.match(doc.querySelector("#forge-test-status").textContent, /Server unavailable/);
   assert.equal(doc.querySelector("#forge-test").disabled, false);
+});
+
+test("builder examples populate the description and copying uses a fresh contract and a safe slug", async () => {
+  const doc = fakeDocument();
+  let copied;
+  const calls = [];
+  const panel = initForgePanel(doc, async (url, options) => { calls.push({ url, options }); return initialFetch(url); },
+    { writeText: async text => { copied = text; } });
+  await panel.ready;
+  doc.querySelector("#forge-name").value = "Raid Welcome";
+  doc.querySelector("#forge-name").listeners.input();
+  assert.equal(doc.querySelector("#forge-name").value, "raid-welcome");
+  doc.querySelector("#forge-example-1").listeners.click();
+  assert.match(doc.querySelector("#forge-description").value, /Celebrate raids/);
+  await panel.copyPrompt();
+  assert.match(copied, /plugins\/raid-welcome\/plugin.html/);
+  assert.equal(doc.querySelector("#forge-prompt").value, copied);
+  assert.match(doc.querySelector("#forge-prompt-status").textContent, /copied to clipboard/);
+  assert.deepEqual(calls.at(-1), { url: "/api/forge/contract", options: { cache: "no-store" } });
+});
+
+test("builder preserves generated text when clipboard access is denied", async () => {
+  const doc = fakeDocument();
+  const panel = initForgePanel(doc, initialFetch, { writeText: async () => { throw new Error("Denied"); } });
+  await panel.ready;
+  doc.querySelector("#forge-name").value = "card";
+  doc.querySelector("#forge-description").value = "Show chat";
+  await panel.copyPrompt();
+  assert.match(doc.querySelector("#forge-prompt").value, /plugins\/card\/manifest.json/);
+  assert.match(doc.querySelector("#forge-prompt-status").textContent, /press Ctrl\+C/);
+  assert.equal(doc.querySelector("#forge-copy").disabled, false);
+});
+
+test("builder explains API 404s and never copies an incomplete prompt", async () => {
+  const doc = fakeDocument();
+  const panel = initForgePanel(doc, async url => url === "/api/forge/contract" ? response({}, 404) : initialFetch(url),
+    { writeText: () => assert.fail("Must not copy") });
+  await panel.ready;
+  await panel.copyPrompt();
+  assert.match(doc.querySelector("#forge-prompt-status").textContent, /Restart StreamForge/);
+  assert.equal(doc.querySelector("#forge-prompt").value, "");
 });

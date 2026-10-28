@@ -105,7 +105,7 @@
         font-weight: 600;
       }
 
-      input {
+      input, textarea {
         width: 100%;
         min-height: 52px;
         padding: 10px 14px;
@@ -119,7 +119,7 @@
         transition: border-color 220ms ease, box-shadow 220ms ease;
       }
 
-      input:focus-visible {
+      input:focus-visible, textarea:focus-visible {
         border-color: var(--color-accent);
         box-shadow: 0 0 0 3px var(--color-accent-focus);
       }
@@ -161,6 +161,12 @@
       .forge-actions button { min-height: 44px; padding: 8px 16px; font-size: 16px; }
       button:disabled { opacity: 0.6; cursor: wait; }
       #forge-status, #forge-test-status { min-height: 1.5em; color: var(--color-muted); overflow-wrap: anywhere; }
+      .forge-builder { display: grid; gap: 12px; margin: 24px 0; }
+      .forge-builder textarea { resize: vertical; min-height: 100px; }
+      #forge-prompt { min-height: 240px; font: 14px/1.5 monospace; }
+      .forge-examples { display: flex; flex-wrap: wrap; gap: 8px; }
+      .forge-examples button { min-height: 36px; margin: 0; padding: 6px 12px; font-size: 14px; background: var(--color-input); color: var(--color-accent); border: 1px solid var(--color-border); border-radius: 24px; }
+      #forge-prompt-status { color: var(--color-muted); }
       #forge-panel details { margin-top: 20px; }
       #forge-panel summary { cursor: pointer; color: var(--color-accent); }
       #forge-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 monospace; padding: 12px; background: var(--color-input); border-radius: 8px; max-height: 400px; overflow: auto; }
@@ -233,6 +239,18 @@
       <section id="forge-panel" aria-labelledby="forge-heading">
         <h2 id="forge-heading">Forge Kit ? Plugins</h2>
         <p>Review installed plugins and their slots. Only the first plugin in each slot appears on the overlay.</p>
+        <div class="forge-builder">
+          <label>Plugin name <input id="forge-name" maxlength="80" placeholder="raid-welcome" autocomplete="off"></label>
+          <label>Describe your plugin <textarea id="forge-description" dir="auto" rows="4" placeholder="What should your plugin do?"></textarea></label>
+          <div class="forge-examples" role="group" aria-label="Plugin ideas">
+            <button type="button" id="forge-example-0">Chat highlight</button>
+            <button type="button" id="forge-example-1">Raid welcome</button>
+            <button type="button" id="forge-example-2">Recap card</button>
+          </div>
+          <button id="forge-copy" type="button">Copy Forge Prompt</button>
+          <p id="forge-prompt-status" role="status" aria-live="polite"></p>
+          <label>Prompt for your coding agent <textarea id="forge-prompt" rows="10" readonly spellcheck="false"></textarea></label>
+        </div>
         <div class="forge-actions">
           <button id="forge-refresh" type="button">Refresh plugins and contract</button>
           <button id="forge-test" type="button">Run overlay test</button>

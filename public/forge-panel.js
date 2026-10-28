@@ -1,3 +1,5 @@
+import { slug, buildForgePrompt } from "./forge-prompt.js";
+
 function textNode(document, tag, text) {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -41,7 +43,7 @@ export function renderForgeContract(document, contract) {
   }
 }
 
-export function initForgePanel(document, fetchImpl = globalThis.fetch) {
+export function initForgePanel(document, fetchImpl = globalThis.fetch, clipboard = globalThis.navigator?.clipboard) {
   const refreshButton = document.querySelector("#forge-refresh");
   const testButton = document.querySelector("#forge-test");
   const status = document.querySelector("#forge-status");
@@ -55,7 +57,7 @@ export function initForgePanel(document, fetchImpl = globalThis.fetch) {
       ["/api/plugins/status", renderPluginStatus], ["/api/forge/contract", renderForgeContract],
     ].map(async ([url, render]) => {
       const response = await fetchImpl(url);
-      if (!response.ok) throw new Error(`${url}: request failed (${response.status}).`);
+      if (!response.ok) throw new Error(response.status === 404 ? `${url}: Forge API unavailable. Restart StreamForge with npm start and refresh.` : `${url}: request failed (${response.status}).`);
       render(document, await response.json());
     }));
     const errors = results.filter(result => result.status === "rejected").map(result => result.reason.message);
@@ -84,7 +86,51 @@ export function initForgePanel(document, fetchImpl = globalThis.fetch) {
     }
   }
 
+  const nameInput = document.querySelector("#forge-name");
+  const description = document.querySelector("#forge-description");
+  const copyButton = document.querySelector("#forge-copy");
+  const output = document.querySelector("#forge-prompt");
+  const promptStatus = document.querySelector("#forge-prompt-status");
+  nameInput.addEventListener("input", () => {
+    const value = nameInput.value;
+    const normalized = slug(value);
+    nameInput.value = normalized + (normalized && /[\s_-]$/.test(value) ? "-" : "");
+  });
+  const examples = [
+    "Show the latest chat message in a compact themed card in the top-right slot.",
+    "Celebrate raids with a brief animated welcome showing the raider name and viewer count in the top-left slot.",
+    "Display a clean recap card for 12 seconds in the recap slot when a recap.card event arrives.",
+  ];
+  examples.forEach((example, index) => document.querySelector("#forge-example-" + index).addEventListener("click", () => {
+    description.value = example;
+    description.focus();
+  }));
+  async function copyPrompt() {
+    if (copyButton.disabled) return;
+    copyButton.disabled = true;
+    promptStatus.textContent = "Building prompt...";
+    output.value = "";
+    try {
+      const response = await fetchImpl("/api/forge/contract", { cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 404
+        ? "Forge API unavailable. Restart StreamForge with npm start, then refresh this page."
+        : "Could not load the Forge contract (" + response.status + ").");
+      nameInput.value = slug(nameInput.value);
+      output.value = buildForgePrompt({ name: nameInput.value, description: description.value, contract: await response.json() });
+      try {
+        if (!clipboard?.writeText) throw new Error("Clipboard unavailable");
+        await clipboard.writeText(output.value);
+        promptStatus.textContent = "Forge prompt copied to clipboard.";
+      } catch {
+        output.focus();
+        output.select();
+        promptStatus.textContent = "Prompt ready. Clipboard unavailable; press Ctrl+C or Command+C to copy the selected text.";
+      }
+    } catch (error) { promptStatus.textContent = error.message; }
+    finally { copyButton.disabled = false; }
+  }
+  copyButton.addEventListener("click", copyPrompt);
   refreshButton.addEventListener("click", refresh);
   testButton.addEventListener("click", sendTest);
-  return { ready: refresh(), refresh, sendTest };
+  return { ready: refresh(), refresh, sendTest, copyPrompt };
 }
