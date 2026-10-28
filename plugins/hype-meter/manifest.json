@@ -1,0 +1,8 @@
+{
+  "name": "hype-meter",
+  "description": "A rolling chat-per-minute hype meter with a five-second raid burst. Chill below 10, Warming up at 10, HYPE at 30 messages per minute.",
+  "subscribes": ["chat.message", "raid"],
+  "width": 480,
+  "height": 80,
+  "position": "top-left"
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --accent: #5be0b0; --surface: rgb(10 18 27 / 94%); --text: #f3f7f5;
+      --muted: #b8c6c1; --border: #34453e; --accentSoft: rgb(91 224 176 / 12%);
+      --fontFamily: sans-serif; --fontSmall: 16px;
+    }
+    * { box-sizing: border-box; }
+    html,body{background:transparent}
+    body { margin: 0; padding: 2px; color: var(--text); font-family: var(--fontFamily); }
+    #card { padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: clamp(12px, var(--fontSmall), 16px); line-height: 1.2; }
+    #level { color: var(--accent); font-weight: 800; }
+    #rate { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    progress { display: block; width: 100%; height: 8px; margin: 6px 0 0; border: 0; border-radius: 8px; overflow: hidden; appearance: none; background: var(--accentSoft); accent-color: var(--accent); }
+    progress::-webkit-progress-bar { background: var(--accentSoft); border-radius: 8px; }
+    progress::-webkit-progress-value { background: var(--accent); border-radius: 8px; transition: width 300ms ease; }
+    progress::-moz-progress-bar { background: var(--accent); border-radius: 8px; }
+    #raid { margin-top: 5px; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #raid[hidden] { display: none; }
+    #card.burst { animation: burst 650ms ease-in-out infinite alternate; border-color: var(--accent); }
+    @keyframes burst { from { box-shadow: inset 0 0 0 1px var(--accentSoft); } to { box-shadow: inset 0 0 0 3px var(--accent); } }
+    @media (prefers-reduced-motion: reduce) {
+      #card.burst { animation: none; }
+      progress::-webkit-progress-value { transition: none; }
+    }
+  </style>
+</head>
+<body dir="auto">
+  <section id="card" aria-label="Chat hype meter">
+    <header><span>Hype · <strong id="level">Chill</strong></span><span id="rate">0 messages/min</span></header>
+    <progress id="meter" max="30" value="0" aria-label="Chat messages per minute; full at 30"></progress>
+    <div id="raid" dir="auto" role="status" hidden></div>
+  </section>
+  <script>
+    const card = document.querySelector("#card");
+    const level = document.querySelector("#level");
+    const rate = document.querySelector("#rate");
+    const meter = document.querySelector("#meter");
+    const raid = document.querySelector("#raid");
+    // Sixty one-second buckets bound memory regardless of chat volume.
+    const buckets = Array.from({ length: 60 }, () => ({ second: -Infinity, count: 0 }));
+    let burstUntil = 0;
+
+    function render() {
+      const now = Date.now();
+      const second = Math.floor(now / 1000);
+      const count = buckets.reduce((total, bucket) => total + (bucket.second <= second && bucket.second > second - 60 ? bucket.count : 0), 0);
+      const bursting = now < burstUntil;
+      level.textContent = bursting || count >= 30 ? "HYPE" : count >= 10 ? "Warming up" : "Chill";
+      rate.textContent = `${count} messages/min`;
+      meter.value = bursting ? 30 : Math.min(30, count);
+      card.className = bursting ? "burst" : "";
+      raid.hidden = !bursting;
+      if (!bursting) raid.textContent = "";
+    }
+
+    window.addEventListener("message", event => {
+      if (event.source !== parent) return;
+      const data = event.data;
+      if (data?.type === "theme" && data.tokens) {
+        for (const key of ["accent", "surface", "text", "muted", "border", "accentSoft", "fontFamily", "fontSmall"]) {
+          if (typeof data.tokens[key] === "string") document.documentElement.style.setProperty(`--${key}`, data.tokens[key]);
+        }
+        return;
+      }
+      if (data?.type === "chat.message" && typeof data.text === "string" && data.text.trim()) {
+        const second = Math.floor(Date.now() / 1000);
+        const bucket = buckets[((second % 60) + 60) % 60];
+        if (bucket.second !== second) { bucket.second = second; bucket.count = 0; }
+        bucket.count++;
+      } else if (data?.type === "raid") {
+        const user = typeof data.user === "string" && data.user.trim() ? data.user.trim().slice(0, 80) : "A raider";
+        const viewers = Number.isSafeInteger(data.viewers) && data.viewers >= 0 ? data.viewers : 0;
+        raid.textContent = `${user} brought ${viewers} viewers!`;
+        burstUntil = Date.now() + 5000;
+      } else return;
+      render();
+    });
+    setInterval(render, 250);
+    render();
+  </script>
+</body>
+</html>
