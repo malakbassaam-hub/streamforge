@@ -11,6 +11,11 @@ test("named slots clamp plugin dimensions and reserve a separate vote zone at bo
   for (const [width, height] of [[1920, 1080], [1280, 720]]) {
     const slots = layoutSlots(width, height);
     assert.ok(slots.vote.width <= 560);
+    for (let i = 0; i < SLOT_NAMES.length; i++) {
+      for (const other of SLOT_NAMES.slice(i + 1)) {
+        assert.equal(overlaps(slots[SLOT_NAMES[i]], slots[other]), false, `${SLOT_NAMES[i]} overlaps ${other}`);
+      }
+    }
     for (const name of SLOT_NAMES) {
       const rect = clampToSlot({ position: name, width: 2000, height: 2000 }, slots);
       assert.deepEqual(rect, slots[name]);

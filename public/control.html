@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>StreamForge Vote Control</title>
+    <title>StreamForge Control</title>
     <style>
       @font-face {
         font-family: "Noto Sans Arabic";
@@ -151,6 +151,20 @@
         font-size: var(--font-body);
       }
 
+      #forge-panel { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--color-border); }
+      #forge-panel h2 { margin: 0; font-size: 26px; }
+      #forge-panel h3 { margin: 20px 0 8px; font-size: 18px; }
+      #forge-panel ul { padding-inline-start: 24px; overflow-wrap: anywhere; }
+      #forge-panel li { margin: 6px 0; }
+      #forge-panel li ul { color: #f0c37b; }
+      .forge-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+      .forge-actions button { min-height: 44px; padding: 8px 16px; font-size: 16px; }
+      button:disabled { opacity: 0.6; cursor: wait; }
+      #forge-status, #forge-test-status { min-height: 1.5em; color: var(--color-muted); overflow-wrap: anywhere; }
+      #forge-panel details { margin-top: 20px; }
+      #forge-panel summary { cursor: pointer; color: var(--color-accent); }
+      #forge-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 monospace; padding: 12px; background: var(--color-input); border-radius: 8px; max-height: 400px; overflow: auto; }
+
       @keyframes panel-in {
         from { opacity: 0; transform: translateY(12px); }
         to { opacity: 1; transform: translateY(0); }
@@ -216,9 +230,33 @@
         <button type="submit">Send test command</button>
         <div id="demo-status" role="status" aria-live="polite"></div>
       </form>
+      <section id="forge-panel" aria-labelledby="forge-heading">
+        <h2 id="forge-heading">Forge Kit ? Plugins</h2>
+        <p>Review installed plugins and their slots. Only the first plugin in each slot appears on the overlay.</p>
+        <div class="forge-actions">
+          <button id="forge-refresh" type="button">Refresh plugins and contract</button>
+          <button id="forge-test" type="button">Run overlay test</button>
+        </div>
+        <p id="forge-status" role="status" aria-live="polite"></p>
+        <p id="forge-test-status" role="status" aria-live="polite"></p>
+        <h3>Valid plugins</h3>
+        <ul id="plugins-valid"><li>Loading plugins?</li></ul>
+        <h3>Invalid plugins</h3>
+        <ul id="plugins-invalid"><li>Loading plugins?</li></ul>
+        <details>
+          <summary>Plugin contract and authoring rules</summary>
+          <h3>Contract</h3><pre id="forge-contract">Loading contract?</pre>
+          <h3>Authoring rules</h3><pre id="forge-rules"></pre>
+          <h3>Allowed positions</h3><p id="forge-positions"></p>
+          <h3>Events and forwarded fields</h3><ul id="forge-events"></ul>
+        </details>
+      </section>
     </main>
     <script type="module">
       import { parseDurationSeconds } from "./control.js";
+      import { initForgePanel } from "./forge-panel.js";
+
+      initForgePanel(document);
 
       document.querySelector("#demo-form").addEventListener("submit", async event => {
         event.preventDefault();
