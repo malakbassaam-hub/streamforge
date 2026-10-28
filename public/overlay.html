@@ -36,8 +36,8 @@
         --font-small: 16px;
         --font-body: 22px;
         --font-chat: 30px;
-        --font-option: 34px;
-        --font-question: 44px;
+        --font-option: 26px;
+        --font-question: 34px;
         --shadow-card: 0 16px 48px var(--color-shadow);
         font-family: var(--font-family);
         background: transparent;
@@ -64,12 +64,15 @@
 
       #plugin-layer iframe {
         position: absolute;
-        max-width: calc(100vw - 96px);
-        max-height: min(60vh, calc(100vh - 96px));
+        /* Match default light plugin documents, independently of the OS theme. */
+        color-scheme: light;
+        background: transparent;
         border: 0;
         pointer-events: none;
         animation: zone-in 280ms ease-out both;
       }
+
+      #plugin-layer iframe[hidden] { display: none; }
 
       header {
         position: fixed;
@@ -110,10 +113,10 @@
       #feed {
         position: fixed;
         z-index: 1;
-        bottom: 48px;
-        left: 48px;
+        bottom: 24px;
+        left: 24px;
         width: min(480px, calc(50vw - 60px));
-        max-height: min(60vh, calc(100vh - 96px));
+        max-height: min(280px, calc(100vh - 540px));
         overflow: hidden;
         display: grid;
         gap: var(--space-2);
@@ -122,25 +125,22 @@
       #vote-card {
         position: fixed;
         z-index: 1;
-        top: 50%;
-        right: 48px;
-        width: min(760px, calc(50vw - 60px));
-        max-height: calc(100vh - 96px);
+        max-width: 560px;
         overflow: auto;
-        padding: var(--space-5);
+        padding: 12px 14px;
         border: 1px solid var(--color-border);
         border-top: 5px solid var(--color-accent);
         border-radius: var(--radius-card);
         background: var(--color-surface);
         box-shadow: var(--shadow-card);
-        transform: translateY(-50%);
+
         animation: vote-in 320ms ease-out both;
       }
 
       #vote-card[hidden] { display: none; }
       #vote-card.is-exiting { animation: vote-out 240ms ease-in both; }
       #vote-question {
-        margin: 0 0 var(--space-3);
+        margin: 0 0 8px;
         font-size: var(--font-question);
         font-weight: 750;
         line-height: 1.2;
@@ -149,12 +149,13 @@
       #vote-countdown {
         margin-bottom: var(--space-1);
         color: var(--color-muted);
-        font-size: var(--font-body);
+        font-size: 18px;
+        line-height: 1.2;
         font-variant-numeric: tabular-nums;
       }
       .countdown-track {
-        height: 8px;
-        margin-bottom: var(--space-4);
+        height: 6px;
+        margin-bottom: 6px;
         overflow: hidden;
         border-radius: var(--radius-pill);
         background: var(--color-track);
@@ -166,18 +167,18 @@
         background: var(--color-accent);
         transition: width 250ms linear;
       }
-      #vote-options { display: grid; gap: var(--space-3); }
+      #vote-options { display: grid; gap: 4px; }
 
       .vote-option {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: var(--space-1) var(--space-3);
+        gap: 4px 8px;
         align-items: center;
-        padding: var(--space-2);
+        padding: 2px 4px;
         border: 1px solid transparent;
         border-radius: 12px;
         font-size: var(--font-option);
-        line-height: 1.25;
+        line-height: 1.15;
         transition: background-color 240ms ease, border-color 240ms ease, transform 240ms ease;
       }
 
@@ -190,7 +191,7 @@
       }
       .vote-bar {
         grid-column: 1 / -1;
-        height: 12px;
+        height: 5px;
         overflow: hidden;
         border-radius: var(--radius-pill);
         background: var(--color-track);
@@ -252,11 +253,11 @@
         to { transform: translateY(0); }
       }
       @keyframes vote-in {
-        from { opacity: 0.75; transform: translate(-12px, -50%); }
-        to { opacity: 1; transform: translate(0, -50%); }
+        from { opacity: 0.75; transform: translateX(8px); }
+        to { opacity: 1; transform: translateX(0); }
       }
       @keyframes vote-out {
-        to { opacity: 0; transform: translate(-8px, -50%); }
+        to { opacity: 0; transform: translateX(8px); }
       }
       @keyframes winner-pop {
         45% { transform: scale(1.025); }
@@ -265,21 +266,6 @@
       @keyframes zone-in {
         from { opacity: 0.75; }
         to { opacity: 1; }
-      }
-
-      @media (max-width: 760px), (max-height: 600px) {
-        header { top: 48px; left: 48px; }
-        #feed { bottom: 48px; left: 48px; width: min(480px, calc(50vw - 60px)); }
-        #vote-card {
-          right: 48px;
-          width: min(640px, calc(50vw - 60px));
-          max-height: calc(100vh - 96px);
-          padding: var(--space-4);
-        }
-        #vote-question { font-size: clamp(30px, 4vw, var(--font-question)); }
-        .vote-option { font-size: clamp(24px, 3vw, var(--font-option)); }
-        .content { font-size: clamp(20px, 2.5vw, var(--font-chat)); }
-        #plugin-layer iframe { max-width: calc(100vw - 96px); }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -307,7 +293,8 @@
       <section id="feed" aria-live="polite" aria-label="Recent events"></section>
     </main>
     <section id="plugin-layer" aria-label="Plugins"></section>
-    <script>
+    <script type="module">
+      import { layoutSlots, clampToSlot, forwardedEvent } from "./overlay-utils.js";
       const feed = document.querySelector("#feed");
       const status = document.querySelector("#status");
       const voteCard = document.querySelector("#vote-card");
@@ -324,7 +311,17 @@
       let voteEndsAt;
       let voteStartedAt;
       let voteOpen = false;
-      const positionOffsets = new Map();
+      function positionPlugins() {
+        const slots = layoutSlots(innerWidth, innerHeight);
+        const zone = slots.vote;
+        Object.assign(voteCard.style, { left: zone.x + "px", top: zone.y + "px", width: zone.width + "px", maxHeight: zone.height + "px" });
+        for (const iframe of pluginLayer.querySelectorAll("iframe")) {
+          const rect = clampToSlot(iframe.pluginManifest, slots);
+          if (rect) Object.assign(iframe.style, { left: rect.x + "px", top: rect.y + "px", width: rect.width + "px", height: rect.height + "px" });
+        }
+      }
+      window.addEventListener("resize", positionPlugins);
+      positionPlugins();
 
       function getThemeTokens() {
         const styles = getComputedStyle(document.documentElement);
@@ -346,20 +343,20 @@
 
       function createPluginFrame(plugin) {
         const iframe = document.createElement("iframe");
-        const offset = positionOffsets.get(plugin.position) || 48;
+        if (!clampToSlot(plugin, layoutSlots(innerWidth, innerHeight))) return;
+        // One occupant per named slot; duplicates cannot spill into other zones.
+        if ([...pluginLayer.querySelectorAll("iframe")].some(frame => frame.pluginManifest.position === plugin.position)) return;
         iframe.title = plugin.name;
         iframe.pluginManifest = plugin;
         iframe.setAttribute("sandbox", "allow-scripts");
         iframe.src = `/plugins/${encodeURIComponent(plugin.name)}/plugin.html`;
-        iframe.style.width = `${plugin.width}px`;
-        iframe.style.height = `${plugin.height}px`;
-        iframe.style[plugin.position.split("-")[0]] = `${offset}px`;
-        iframe.style[plugin.position.split("-")[1]] = `${offset}px`;
+        iframe.hidden = true;
         iframe.addEventListener("load", () => {
           iframe.contentWindow?.postMessage({ type: "theme", tokens: getThemeTokens() }, "*");
         });
-        positionOffsets.set(plugin.position, offset + plugin.height + 12);
+
         pluginLayer.append(iframe);
+        positionPlugins();
       }
 
       async function loadPlugins() {
@@ -369,49 +366,14 @@
           const plugins = await response.json();
           if (!Array.isArray(plugins)) throw new Error("Plugin list response was invalid.");
           pluginLayer.replaceChildren();
-          positionOffsets.clear();
+
           for (const plugin of plugins) createPluginFrame(plugin);
         } catch (error) {
           console.error("Unable to load plugins:", error);
         }
       }
 
-      function getPluginEvent(event) {
-        switch (event.type) {
-          case "chat.message":
-            return {
-              type: event.type,
-              user: event.user,
-              text: event.text,
-              ts: event.ts,
-            };
-          case "raid":
-            return {
-              type: event.type,
-              user: event.user,
-              viewers: event.viewers,
-              ts: event.ts,
-            };
-          case "vote.update":
-            return {
-              type: event.type,
-              question: event.question,
-              options: event.options.map(({ label, count }) => ({ label, count })),
-              endsAt: event.endsAt,
-            };
-          case "recap.card":
-            return { type: event.type, lines: event.lines.filter(line => typeof line === "string"), ts: event.ts };
-          case "vote.result":
-            return {
-              type: event.type,
-              question: event.question,
-              winner: event.winner,
-              options: event.options.map(({ label, count }) => ({ label, count })),
-            };
-          default:
-            return null;
-        }
-      }
+      const getPluginEvent = forwardedEvent;
 
       function forwardToPlugins(event) {
         const pluginEvent = getPluginEvent(event);
@@ -419,7 +381,12 @@
 
         for (const iframe of pluginLayer.querySelectorAll("iframe")) {
           const plugin = iframe.pluginManifest;
-          if (plugin?.subscribes.includes(event.type) && iframe.contentWindow) {
+          if (plugin?.subscribes.includes(pluginEvent.type) && iframe.contentWindow) {
+            iframe.hidden = false;
+            if (pluginEvent.type === "recap.card") {
+              clearTimeout(iframe.idleTimer);
+              iframe.idleTimer = setTimeout(() => { iframe.hidden = true; }, 12_000);
+            }
             iframe.contentWindow.postMessage(pluginEvent, "*");
           }
         }

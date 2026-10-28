@@ -2,7 +2,7 @@
   "name": "recap",
   "description": "A short recap of the last ten minutes of retained stream activity.",
   "subscribes": ["recap.card"],
-  "width": 480,
-  "height": 380,
-  "position": "top-left"
+  "width": 520,
+  "height": 480,
+  "position": "recap"
 }

@@ -3,8 +3,8 @@
 2. Use a lowercase folder name with letters, digits, and hyphens.
 3. Manifest fields: `name`, `description`, `subscribes`, `width`, `height`, `position`.
 4. `name` must match the plugin folder; dimensions are integers from 1 to 2000.
-5. `position` is `top-left`, `top-right`, `bottom-left`, or `bottom-right`.
-6. Subscribe to `chat.message`, `raid`, `vote.update`, `vote.result`, and/or `recap.card`.
+5. `position` is `top-left`, `top-right`, `bottom-right`, or `recap`. The overlay clamps dimensions to the slot, reserves a separate vote zone, and uses the first plugin in each slot.
+6. Subscribe to `chat.message`, `raid`, `vote.update`, `vote.result`, `recap.card`, and/or `command`.
 7. `plugin.html` must contain all HTML, CSS, and JavaScript inline; no external requests.
 8. Plugins run in an iframe sandboxed with scripts only and a restrictive CSP.
 9. Receive events with `window.addEventListener("message", ({data}) => { ... })`.
@@ -18,3 +18,7 @@
 16. Recap cards have `lines` (plain text string array) and `ts` (Unix milliseconds). They summarize retained events from the last 10 minutes, with a global 60-second cooldown. The current memory holds at most 100 events, so busy streams may retain less than ten minutes.
 
 With `DEMO=1`, enter `!recap` in the control page's demo test box or POST to `/api/demo/recap`. Both demo endpoints require a localhost connection and share the chat command's cooldown. Recaps use templates only, without network or LLM calls.
+
+17. Include `html,body{background:transparent}`. The overlay sets iframe `color-scheme: light` so default plugin canvases remain transparent in both OS themes.
+18. Pure `!1`-`!4` (including Arabic-Indic digits) and `!recap` are delivered only as `command` events (`user`, `text`, `ts`), never as `chat.message`.
+19. Frames start hidden until a subscribed event arrives; recap frames hide after 12 seconds. Empty frames never capture pointer input.

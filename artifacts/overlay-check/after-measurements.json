@@ -1,0 +1,262 @@
+[
+  {
+    "width": 1920,
+    "height": 1080,
+    "theme": "light",
+    "vote": {
+      "x": 1336,
+      "y": 160,
+      "width": 560,
+      "height": 472.3125,
+      "top": 160,
+      "right": 1896,
+      "bottom": 632.3125,
+      "left": 1336
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 1336,
+          "y": 936,
+          "width": 320,
+          "height": 120,
+          "top": 936,
+          "right": 1656,
+          "bottom": 1056,
+          "left": 1336
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 1336,
+          "y": 24,
+          "width": 320,
+          "height": 100,
+          "top": 24,
+          "right": 1656,
+          "bottom": 124,
+          "left": 1336
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "recap",
+        "hidden": true,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "scheme": "light"
+      }
+    ],
+    "questionFont": "34px",
+    "optionFont": "26px",
+    "overflow": false
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "theme": "dark",
+    "vote": {
+      "x": 1336,
+      "y": 160,
+      "width": 560,
+      "height": 472.3125,
+      "top": 160,
+      "right": 1896,
+      "bottom": 632.3125,
+      "left": 1336
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 1336,
+          "y": 936,
+          "width": 320,
+          "height": 120,
+          "top": 936,
+          "right": 1656,
+          "bottom": 1056,
+          "left": 1336
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 1336,
+          "y": 24,
+          "width": 320,
+          "height": 100,
+          "top": 24,
+          "right": 1656,
+          "bottom": 124,
+          "left": 1336
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "recap",
+        "hidden": true,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "scheme": "light"
+      }
+    ],
+    "questionFont": "34px",
+    "optionFont": "26px",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "vote": {
+      "x": 696,
+      "y": 120,
+      "width": 560,
+      "height": 472.3125,
+      "top": 120,
+      "right": 1256,
+      "bottom": 592.3125,
+      "left": 696
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 696,
+          "y": 616,
+          "width": 320,
+          "height": 80,
+          "top": 616,
+          "right": 1016,
+          "bottom": 696,
+          "left": 696
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 696,
+          "y": 24,
+          "width": 320,
+          "height": 80,
+          "top": 24,
+          "right": 1016,
+          "bottom": 104,
+          "left": 696
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "recap",
+        "hidden": true,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "scheme": "light"
+      }
+    ],
+    "questionFont": "34px",
+    "optionFont": "26px",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "vote": {
+      "x": 696,
+      "y": 120,
+      "width": 560,
+      "height": 472.3125,
+      "top": 120,
+      "right": 1256,
+      "bottom": 592.3125,
+      "left": 696
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 696,
+          "y": 616,
+          "width": 320,
+          "height": 80,
+          "top": 616,
+          "right": 1016,
+          "bottom": 696,
+          "left": 696
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 696,
+          "y": 24,
+          "width": 320,
+          "height": 80,
+          "top": 24,
+          "right": 1016,
+          "bottom": 104,
+          "left": 696
+        },
+        "scheme": "light"
+      },
+      {
+        "name": "recap",
+        "hidden": true,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "scheme": "light"
+      }
+    ],
+    "questionFont": "34px",
+    "optionFont": "26px",
+    "overflow": false
+  }
+]

@@ -13,7 +13,7 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
   // Isolate token storage and dotenv configuration from the developer's server.
   const directory = fs.mkdtempSync(path.join(root, "server-test-"));
 
-  for (const name of ["server.js", "package.json", "core", "public", "plugins"]) {
+  for (const name of ["server.js", "package.json", "AGENTS.md", "core", "public", "plugins"]) {
     fs.cpSync(path.join(root, name), path.join(directory, name), { recursive: true });
   }
   const reservation = http.createServer();
@@ -65,7 +65,7 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
     assert.equal((await request(route)).status, 200);
     assert.equal((await request(route, { host: "evil.test" })).status, 403);
   }
-  const plugin = await request("/plugins/hello2/plugin.html");
+  const plugin = await request("/plugins/hello/plugin.html");
   assert.equal(plugin.status, 200);
   assert.equal(plugin.headers["content-security-policy"],
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'");
@@ -111,4 +111,25 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
     assert.ok(!memory.some(event => event.type === "chat.message" && event.text.toLowerCase().includes("!recap")));
   }
   assert.equal((await request("/plugins/recap/plugin.html")).status, 200);
+  const contract = JSON.parse((await request("/api/forge/contract")).text);
+  assert.deepEqual(Object.keys(contract).sort(), ["contract", "events", "positions", "rules"]);
+  assert.equal(contract.contract, fs.readFileSync(path.join(directory, "plugins/README.md"), "utf8"));
+  assert.match(contract.rules, /^## Plugin authoring rules/);
+  assert.deepEqual(contract.events["chat.message"], ["type", "user", "text", "ts"]);
+  assert.deepEqual(contract.positions, ["top-left", "top-right", "bottom-right", "recap"]);
+  const status = JSON.parse((await request("/api/plugins/status")).text);
+  assert.ok(status.valid.every(plugin => Array.isArray(plugin.warnings)));
+  assert.deepEqual(status.invalid, []);
+  for (const route of ["/api/forge/contract", "/api/plugins/status"]) {
+    assert.equal((await request(route, { host: "evil.test" })).status, 403);
+  }
+  assert.equal((await request("/api/forge/test", { host: "evil.test", body: {} })).status, 403);
+  assert.equal((await request("/api/forge/test", { body: {} })).status, 202);
+  const limited = await request("/api/forge/test", { body: {} });
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers["retry-after"]) > 0);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const testMemory = JSON.parse((await request("/api/memory")).text).events;
+  assert.ok(testMemory.some(event => event.type === "chat.message" && event.user.startsWith("TEST_")));
+
 });

@@ -6,7 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
 import { startEventSub } from "./core/eventsub.js";
-import { scanPlugins, watchPlugins } from "./core/plugins.js";
+import { scanPlugins, scanPluginStatus, watchPlugins } from "./core/plugins.js";
+import { forgeContract, requireLoopback, createForgeTester } from "./core/forge.js";
 import { createEventHandler } from "./core/events.js";
 import { createRecapManager, isRecapCommand } from "./core/recap.js";
 import { createSnapshotStore } from "./core/snapshot.js";
@@ -141,6 +142,19 @@ app.post(["/api/demo/recap", "/api/demo/chat"], (request, response, next) => {
   const result = recapManager.request();
   if (!result.published) response.set("Retry-After", String(result.retryAfterSeconds));
   response.status(result.published ? 201 : 429).json(result);
+});
+
+const forgeTester = createForgeTester(handleEvent);
+app.get("/api/forge/contract", requireLoopback, (_request, response) => {
+  response.json(forgeContract(__dirname));
+});
+app.get("/api/plugins/status", requireLoopback, (_request, response) => {
+  response.json(scanPluginStatus(pluginsPath));
+});
+app.post("/api/forge/test", requireLoopback, (_request, response) => {
+  const result = forgeTester.start();
+  if (!result.started) response.set("Retry-After", String(result.retryAfterSeconds));
+  response.status(result.started ? 202 : 429).json(result);
 });
 
 // ---- Basic routes ----
@@ -297,4 +311,4 @@ const server = app.listen(port, host, () => {
   console.log(`StreamForge demo server listening at http://${host}:${port}`);
   launchEventSub();
 });
-server.on("close", () => pluginWatcher.close());
+server.on("close", () => { pluginWatcher.close(); forgeTester.stop(); });

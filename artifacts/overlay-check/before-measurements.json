@@ -1,0 +1,322 @@
+[
+  {
+    "width": 1920,
+    "height": 1080,
+    "theme": "light",
+    "vote": {
+      "x": 1112,
+      "y": 115.203125,
+      "width": 760,
+      "height": 849.59375,
+      "top": 115.203125,
+      "right": 1872,
+      "bottom": 964.796875,
+      "left": 1112
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 1552,
+          "y": 882,
+          "width": 320,
+          "height": 150,
+          "top": 882,
+          "right": 1872,
+          "bottom": 1032,
+          "left": 1552
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 1552,
+          "y": 48,
+          "width": 320,
+          "height": 100,
+          "top": 48,
+          "right": 1872,
+          "bottom": 148,
+          "left": 1552
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello2",
+        "hidden": false,
+        "rect": {
+          "x": 1440,
+          "y": 160,
+          "width": 320,
+          "height": 100,
+          "top": 160,
+          "right": 1760,
+          "bottom": 260,
+          "left": 1440
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "recap",
+        "hidden": false,
+        "rect": {
+          "x": 48,
+          "y": 48,
+          "width": 480,
+          "height": 380,
+          "top": 48,
+          "right": 528,
+          "bottom": 428,
+          "left": 48
+        },
+        "scheme": "dark"
+      }
+    ],
+    "questionFont": "44px",
+    "optionFont": "34px",
+    "overflow": false
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "theme": "dark",
+    "vote": {
+      "x": 1112,
+      "y": 115.203125,
+      "width": 760,
+      "height": 849.59375,
+      "top": 115.203125,
+      "right": 1872,
+      "bottom": 964.796875,
+      "left": 1112
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 1552,
+          "y": 882,
+          "width": 320,
+          "height": 150,
+          "top": 882,
+          "right": 1872,
+          "bottom": 1032,
+          "left": 1552
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 1552,
+          "y": 48,
+          "width": 320,
+          "height": 100,
+          "top": 48,
+          "right": 1872,
+          "bottom": 148,
+          "left": 1552
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello2",
+        "hidden": false,
+        "rect": {
+          "x": 1440,
+          "y": 160,
+          "width": 320,
+          "height": 100,
+          "top": 160,
+          "right": 1760,
+          "bottom": 260,
+          "left": 1440
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "recap",
+        "hidden": false,
+        "rect": {
+          "x": 48,
+          "y": 48,
+          "width": 480,
+          "height": 380,
+          "top": 48,
+          "right": 528,
+          "bottom": 428,
+          "left": 48
+        },
+        "scheme": "dark"
+      }
+    ],
+    "questionFont": "44px",
+    "optionFont": "34px",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "vote": {
+      "x": 652,
+      "y": 48,
+      "width": 580,
+      "height": 624,
+      "top": 48,
+      "right": 1232,
+      "bottom": 672,
+      "left": 652
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 912,
+          "y": 522,
+          "width": 320,
+          "height": 150,
+          "top": 522,
+          "right": 1232,
+          "bottom": 672,
+          "left": 912
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 912,
+          "y": 48,
+          "width": 320,
+          "height": 100,
+          "top": 48,
+          "right": 1232,
+          "bottom": 148,
+          "left": 912
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello2",
+        "hidden": false,
+        "rect": {
+          "x": 800,
+          "y": 160,
+          "width": 320,
+          "height": 100,
+          "top": 160,
+          "right": 1120,
+          "bottom": 260,
+          "left": 800
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "recap",
+        "hidden": false,
+        "rect": {
+          "x": 48,
+          "y": 48,
+          "width": 480,
+          "height": 380,
+          "top": 48,
+          "right": 528,
+          "bottom": 428,
+          "left": 48
+        },
+        "scheme": "dark"
+      }
+    ],
+    "questionFont": "44px",
+    "optionFont": "34px",
+    "overflow": true
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "vote": {
+      "x": 652,
+      "y": 48,
+      "width": 580,
+      "height": 624,
+      "top": 48,
+      "right": 1232,
+      "bottom": 672,
+      "left": 652
+    },
+    "frames": [
+      {
+        "name": "guess-number",
+        "hidden": false,
+        "rect": {
+          "x": 912,
+          "y": 522,
+          "width": 320,
+          "height": 150,
+          "top": 522,
+          "right": 1232,
+          "bottom": 672,
+          "left": 912
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello",
+        "hidden": false,
+        "rect": {
+          "x": 912,
+          "y": 48,
+          "width": 320,
+          "height": 100,
+          "top": 48,
+          "right": 1232,
+          "bottom": 148,
+          "left": 912
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "hello2",
+        "hidden": false,
+        "rect": {
+          "x": 800,
+          "y": 160,
+          "width": 320,
+          "height": 100,
+          "top": 160,
+          "right": 1120,
+          "bottom": 260,
+          "left": 800
+        },
+        "scheme": "dark"
+      },
+      {
+        "name": "recap",
+        "hidden": false,
+        "rect": {
+          "x": 48,
+          "y": 48,
+          "width": 480,
+          "height": 380,
+          "top": 48,
+          "right": 528,
+          "bottom": 428,
+          "left": 48
+        },
+        "scheme": "dark"
+      }
+    ],
+    "questionFont": "44px",
+    "optionFont": "34px",
+    "overflow": true
+  }
+]
