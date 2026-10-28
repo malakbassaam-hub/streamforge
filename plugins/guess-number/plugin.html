@@ -3,23 +3,25 @@
   <head>
     <meta charset="utf-8">
     <style>
+      :root { --accent: #5be0b0; --surface: rgb(17 24 32 / 94%); --text: #f3f6f4; --muted: #c8d5cf; --border: #65caa2; --fontFamily: "Segoe UI", sans-serif; }
+      html,body{background:transparent}
       body {
         margin: 0;
-        color: #f3f6f4;
-        font: 14px "Segoe UI", sans-serif;
+        color: var(--text);
+        font: 14px var(--fontFamily);
       }
       #game {
         padding: 14px 16px;
-        border: 1px solid #f0b95c;
+        border: 1px solid var(--accent);
         border-radius: 8px;
-        background: rgb(17 24 32 / 94%);
+        background: var(--surface);
         box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
       }
       h1 { margin: 0 0 6px; font-size: 15px; }
-      #status { color: #c8d5cf; }
+      #status { color: var(--muted); }
     </style>
   </head>
-  <body>
+  <body dir="auto">
     <section id="game">
       <h1>Guess the number (1–100)</h1>
       <div id="status">Send a number in chat. New number every 60 seconds.</div>
@@ -43,14 +45,23 @@
         guesses = [];
       }, 60_000);
 
-      window.addEventListener("message", ({ data }) => {
+      window.addEventListener("message", event => {
+        if (event.source !== parent) return;
+        const data = event.data;
+        if (data?.type === "theme" && data.tokens) {
+          for (const key of ["accent", "surface", "text", "muted", "border", "fontFamily"]) {
+            if (typeof data.tokens[key] === "string") document.documentElement.style.setProperty('--' + key, data.tokens[key]);
+          }
+          return;
+        }
         if (data?.type !== "chat.message" || typeof data.text !== "string") return;
         const match = /^\s*(\d{1,3})\s*$/.exec(data.text);
         if (!match) return;
         const value = Number(match[1]);
         if (value < 1 || value > 100) return;
-        guesses.push({ user: data.user, value });
-        status.textContent = `${data.user} guessed ${value}.`;
+        const user = typeof data.user === "string" ? data.user : "Viewer";
+        guesses.push({ user, value });
+        status.textContent = `${user} guessed ${value}.`;
       });
     </script>
   </body>

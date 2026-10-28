@@ -20,5 +20,15 @@
 With `DEMO=1`, enter `!recap` in the control page's demo test box or POST to `/api/demo/recap`. Both demo endpoints require a localhost connection and share the chat command's cooldown. Recaps use templates only, without network or LLM calls.
 
 17. Include `html,body{background:transparent}`. The overlay sets iframe `color-scheme: light` so default plugin canvases remain transparent in both OS themes.
-18. Pure `!1`-`!4` (including Arabic-Indic digits) and `!recap` are delivered only as `command` events (`user`, `text`, `ts`), never as `chat.message`.
+18. Pure `!1`-`!4` (including Arabic-Indic digits) and `!recap`, when received by the overlay, are delivered only as `command` events (`user`, `text`, `ts`), never as `chat.message`. The server consumes real `!recap` chat commands to publish `recap.card`; those commands do not enter the overlay chat stream.
 19. Frames start hidden until a subscribed event arrives; recap frames hide after 12 seconds. Empty frames never capture pointer input.
+
+## Authoring checklist
+
+Create only `plugins/<slug>/manifest.json` and `plugins/<slug>/plugin.html`. Keep CSS and JavaScript inline; do not use network requests, imports, external assets, cookies, localStorage, sessionStorage, or IndexedDB. Verify `event.source === parent` inside the message listener. Apply theme tokens, use `dir="auto"` and `textContent` for dynamic text, handle empty or missing data, respect `prefers-reduced-motion` for animations, and keep animated DOM nodes under approximately 30. Pick an available named slot; frames are clamped and cannot cover the reserved vote zone.
+
+## Forge Kit
+
+Open `/control` to inspect valid/invalid plugins, lint warnings, the live contract, and slot conflicts. Refresh after editing plugin files. Warnings are advisory and do not prevent loading; invalid manifests do. The first valid plugin in each slot occupies that slot.
+
+`GET /api/forge/contract` returns this guide, the `AGENTS.md` authoring rules, and the shared event/position allowlists. `GET /api/plugins/status` returns `{valid, invalid}` with warnings on valid entries. `POST /api/forge/test` publishes labeled TEST chat, raid, and vote-result events locally over eight seconds, limited globally to once every five seconds (429 with `Retry-After`). Test events appear in the overlay and retained history, including the displayed vote result. No Twitch chat messages are sent.

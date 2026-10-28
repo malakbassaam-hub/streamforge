@@ -16,7 +16,8 @@ function loadOverlay() {
       prepend(item) { this.children.unshift(item); },
       replaceChildren(...items) { this.children = items; },
       querySelectorAll() { return []; },
-      setAttribute() {}, addEventListener() {},
+      attributes: {},
+      setAttribute(name, value) { this.attributes[name] = value; }, addEventListener() {},
       contentWindow: { postMessage() {} },
       get firstElementChild() { return this.children[0]; },
     };
@@ -93,6 +94,7 @@ test("plugin frames start collapsed, clamp to slots, and recap collapses after t
   createFrame({ name: "recap", position: "recap", width: 2000, height: 2000, subscribes: ["recap.card"] });
   assert.equal(layer.children.length, 1);
   const frame = layer.children[0];
+  assert.deepEqual(frame.attributes, { sandbox: "allow-scripts" });
   assert.equal(frame.hidden, true);
   assert.equal(frame.style.width, "520px");
   assert.equal(frame.style.height, "480px");
