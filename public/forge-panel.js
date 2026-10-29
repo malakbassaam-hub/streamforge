@@ -48,6 +48,27 @@ export function initForgePanel(document, fetchImpl = globalThis.fetch, clipboard
   const testButton = document.querySelector("#forge-test");
   const status = document.querySelector("#forge-status");
   const feedback = document.querySelector("#forge-test-status");
+  const burstButton = document.querySelector("#demo-hype-burst");
+  const burstStatus = document.querySelector("#demo-hype-status");
+
+  async function sendBurst() {
+    if (burstButton.disabled) return;
+    burstButton.disabled = true;
+    burstStatus.textContent = "Starting demo hype burst...";
+    try {
+      const response = await fetchImpl("/api/demo/burst", { method: "POST" });
+      const result = await response.json();
+      if (response.status === 429) {
+        burstStatus.textContent = `Demo burst cooldown: try again in ${result.retryAfterSeconds ?? 5} seconds.`;
+      } else if (!response.ok) {
+        throw new Error(result.error || `Demo burst failed (${response.status}).`);
+      } else {
+        burstStatus.textContent = "Demo hype burst sent: Demo_Raider, 42 viewers, 5 seconds.";
+      }
+    } catch (error) { burstStatus.textContent = error.message; }
+    finally { burstButton.disabled = false; }
+  }
+  burstButton.addEventListener("click", sendBurst);
 
   async function refresh() {
     if (refreshButton.disabled) return;
@@ -132,5 +153,5 @@ export function initForgePanel(document, fetchImpl = globalThis.fetch, clipboard
   copyButton.addEventListener("click", copyPrompt);
   refreshButton.addEventListener("click", refresh);
   testButton.addEventListener("click", sendTest);
-  return { ready: refresh(), refresh, sendTest, copyPrompt };
+  return { ready: refresh(), refresh, sendTest, copyPrompt, sendBurst };
 }

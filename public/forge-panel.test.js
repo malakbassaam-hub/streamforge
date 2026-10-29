@@ -32,6 +32,24 @@ const contract = {
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const initialFetch = async url => response(url === "/api/plugins/status" ? { valid: [], invalid: [] } : contract);
 
+test("demo hype button posts the burst and reports success, cooldown and disabled-demo errors", async () => {
+  const doc = fakeDocument();
+  const replies = [response({ started: true }, 201), response({ retryAfterSeconds: 3 }, 429), response({ error: "Enable DEMO=1 to test hype bursts." }, 404)];
+  const panel = initForgePanel(doc, async (url, options) => {
+    if (url !== "/api/demo/burst") return initialFetch(url);
+    assert.deepEqual(options, { method: "POST" });
+    return replies.shift();
+  });
+  await panel.ready;
+  await doc.querySelector("#demo-hype-burst").listeners.click();
+  assert.match(doc.querySelector("#demo-hype-status").textContent, /42 viewers, 5 seconds/);
+  await panel.sendBurst();
+  assert.match(doc.querySelector("#demo-hype-status").textContent, /try again in 3 seconds/);
+  await panel.sendBurst();
+  assert.match(doc.querySelector("#demo-hype-status").textContent, /Enable DEMO=1/);
+  assert.equal(doc.querySelector("#demo-hype-burst").disabled, false);
+});
+
 test("status rendering includes names, positions, warnings, invalid folders and readable reasons as text", () => {
   const doc = fakeDocument();
   renderPluginStatus(doc, {

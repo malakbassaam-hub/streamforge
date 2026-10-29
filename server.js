@@ -127,6 +127,20 @@ const handleEvent = createEventHandler(voteManager, publish, () => {
   recapManager.request();
 });
 
+let nextDemoBurstAt = -Infinity;
+app.post("/api/demo/burst", requireLoopback, (_request, response) => {
+  if (process.env.DEMO !== "1") return response.status(404).json({ error: "Enable DEMO=1 to test hype bursts." });
+  const now = Date.now();
+  if (now < nextDemoBurstAt) {
+    const retryAfterSeconds = Math.ceil((nextDemoBurstAt - now) / 1000);
+    response.set("Retry-After", String(retryAfterSeconds));
+    return response.status(429).json({ error: "Demo hype burst is cooling down.", retryAfterSeconds });
+  }
+  nextDemoBurstAt = now + 5000;
+  handleEvent({ type: "raid", user: "Demo_Raider", viewers: 42, ts: now });
+  response.status(201).json({ started: true, durationMs: 5000 });
+});
+
 app.post(["/api/demo/recap", "/api/demo/chat"], (request, response, next) => {
   const address = request.socket.remoteAddress ?? "";
   if (!(address === "::1" || address.startsWith("127.") || /^::ffff:127(?:\.\d{1,3}){3}$/i.test(address))) {

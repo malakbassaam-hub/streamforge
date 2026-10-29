@@ -66,6 +66,10 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
     assert.equal((await request(route, { host: "evil.test" })).status, 403);
   }
   const plugin = await request("/plugins/hello/plugin.html");
+  const control = await request("/control");
+  assert.match(control.headers["content-type"], /charset=utf-8/i);
+  assert.ok(control.text.includes("Forge Kit - Plugins"));
+  assert.ok(control.text.includes("Demo hype burst"));
   assert.equal(plugin.status, 200);
   assert.equal(plugin.headers["content-security-policy"],
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'");
@@ -111,6 +115,17 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
     assert.ok(!memory.some(event => event.type === "chat.message" && event.text.toLowerCase().includes("!recap")));
   }
   assert.equal((await request("/plugins/recap/plugin.html")).status, 200);
+  assert.equal((await request("/api/demo/burst", { host: "evil.test", body: {} })).status, 403);
+  const burst = await request("/api/demo/burst", { body: {} });
+  assert.equal(burst.status, demo === "1" ? 201 : 404);
+  if (demo === "1") {
+    assert.deepEqual(JSON.parse(burst.text), { started: true, durationMs: 5000 });
+    const cooldown = await request("/api/demo/burst", { body: {} });
+    assert.equal(cooldown.status, 429);
+    assert.ok(Number(cooldown.headers["retry-after"]) > 0);
+    const events = JSON.parse((await request("/api/memory")).text).events;
+    assert.equal(events.filter(event => event.type === "raid" && event.user === "Demo_Raider" && event.viewers === 42).length, 1);
+  }
   const contract = JSON.parse((await request("/api/forge/contract")).text);
   assert.deepEqual(Object.keys(contract).sort(), ["contract", "events", "positions", "rules"]);
   assert.equal(contract.contract, fs.readFileSync(path.join(directory, "plugins/README.md"), "utf8"));
