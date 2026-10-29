@@ -1,0 +1,7 @@
+# Small placeholder starter only; this is NOT a comprehensive moderation list.
+# Add your own terms, one per line. Blank lines and lines starting with # are ignored.
+# Matching ignores case, accents/Arabic diacritics, tatweel and separators,
+# and maps some common look-alikes. It uses substring matching and can overblock.
+# Restart StreamForge after editing. Keep Twitch AutoMod enabled.
+streamforge-blocked-example
+placeholderblocked

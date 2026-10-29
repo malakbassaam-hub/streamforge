@@ -43,6 +43,14 @@ export function renderForgeContract(document, contract) {
   }
 }
 
+export function renderSafetyStats(document, stats) {
+  document.querySelector("#safety-counts").textContent = `Blocked messages: ${stats.blocked} · Links removed: ${stats.linksRemoved}`;
+  const reasons = document.querySelector("#safety-reasons");
+  reasons.replaceChildren();
+  for (const [reason, count] of Object.entries(stats.byReason)) reasons.append(textNode(document, "li", `${reason}: ${count}`));
+  if (!Object.keys(stats.byReason).length) reasons.append(textNode(document, "li", "No filter actions yet."));
+}
+
 export function initForgePanel(document, fetchImpl = globalThis.fetch, clipboard = globalThis.navigator?.clipboard) {
   const refreshButton = document.querySelector("#forge-refresh");
   const testButton = document.querySelector("#forge-test");
@@ -76,13 +84,14 @@ export function initForgePanel(document, fetchImpl = globalThis.fetch, clipboard
     status.textContent = "Loading plugins and contract…";
     const results = await Promise.allSettled([
       ["/api/plugins/status", renderPluginStatus], ["/api/forge/contract", renderForgeContract],
+      ["/api/safety/stats", renderSafetyStats],
     ].map(async ([url, render]) => {
       const response = await fetchImpl(url);
       if (!response.ok) throw new Error(response.status === 404 ? `${url}: Forge API unavailable. Restart StreamForge with npm start and refresh.` : `${url}: request failed (${response.status}).`);
       render(document, await response.json());
     }));
     const errors = results.filter(result => result.status === "rejected").map(result => result.reason.message);
-    status.textContent = errors.length ? errors.join(" ") : "Plugin status and contract are up to date.";
+    status.textContent = errors.length ? errors.join(" ") : "Plugin status, safety counts and contract are up to date.";
     refreshButton.disabled = false;
   }
 

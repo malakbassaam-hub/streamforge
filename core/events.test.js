@@ -7,7 +7,7 @@ test("normalization strips extra fields and sanitizes before voting and publicat
   const calls = [];
   const handle = createEventHandler({ handleChatMessage: (...args) => calls.push(args) }, event => calls.push(event));
   handle({ type: "chat.message", user: "Viewer", text: `  !1 ${"x".repeat(250)}  `, ts: 123, secret: "hidden" });
-  const text = `!1 ${"x".repeat(197)}`;
+  const text = "!1 xxxx";
   assert.deepEqual(calls, [["Viewer", text], { type: "chat.message", user: "Viewer", text, ts: 123 }]);
   assert.deepEqual(normalizeEvent({ type: "raid", user: "Raider", viewers: 42, ts: 123, secret: "hidden" }),
     { type: "raid", user: "Raider", viewers: 42, ts: 123 });

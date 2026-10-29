@@ -252,13 +252,17 @@
           <label>Prompt for your coding agent <textarea id="forge-prompt" rows="10" readonly spellcheck="false"></textarea></label>
         </div>
         <div class="forge-actions">
-          <button id="forge-refresh" type="button">Refresh plugins and contract</button>
+          <button id="forge-refresh" type="button">Refresh plugins, safety and contract</button>
           <button id="forge-test" type="button">Run overlay test</button>
           <button id="demo-hype-burst" type="button">Demo hype burst</button>
         </div>
         <p id="forge-status" role="status" aria-live="polite"></p>
         <p id="forge-test-status" role="status" aria-live="polite"></p>
         <p id="demo-hype-status" role="status" aria-live="polite"></p>
+        <h3>Chat safety</h3>
+        <p id="safety-counts" role="status" aria-live="polite">Loading safety counts...</p>
+        <ul id="safety-reasons"></ul>
+        <p>Counts are since server startup. Use Refresh to update. This basic configurable filter does not replace Twitch AutoMod.</p>
         <h3>Valid plugins</h3>
         <ul id="plugins-valid"><li>Loading plugins?</li></ul>
         <h3>Invalid plugins</h3>

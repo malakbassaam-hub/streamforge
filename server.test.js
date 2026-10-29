@@ -13,9 +13,11 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
   // Isolate token storage and dotenv configuration from the developer's server.
   const directory = fs.mkdtempSync(path.join(root, "server-test-"));
 
-  for (const name of ["server.js", "package.json", "AGENTS.md", "core", "public", "plugins"]) {
+  for (const name of ["server.js", "package.json", "AGENTS.md", "config", "core", "public", "plugins"]) {
     fs.cpSync(path.join(root, name), path.join(directory, name), { recursive: true });
   }
+  // Block the first known Forge chat in this isolated server, not in the user's config.
+  fs.appendFileSync(path.join(directory, "config/blocklist.txt"), "\nhello stream\n", "utf8");
   const reservation = http.createServer();
   reservation.listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -135,16 +137,37 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
   const status = JSON.parse((await request("/api/plugins/status")).text);
   assert.ok(status.valid.every(plugin => Array.isArray(plugin.warnings)));
   assert.deepEqual(status.invalid, []);
-  for (const route of ["/api/forge/contract", "/api/plugins/status"]) {
+  const safety = JSON.parse((await request("/api/safety/stats")).text);
+  assert.equal(typeof safety.blocked, "number");
+  assert.equal(typeof safety.linksRemoved, "number");
+  assert.equal(typeof safety.byReason, "object");
+  for (const route of ["/api/forge/contract", "/api/plugins/status", "/api/safety/stats"]) {
     assert.equal((await request(route, { host: "evil.test" })).status, 403);
   }
   assert.equal((await request("/api/forge/test", { host: "evil.test", body: {} })).status, 403);
+  let stream;
+  let wire = "";
+  const streamRequest = http.get({ hostname: "127.0.0.1", port, path: "/events", headers: { Host: "localhost" } });
+  streamRequest.on("response", response => {
+    stream = response;
+    response.on("data", chunk => { wire += chunk; });
+  });
+  context.after(() => { stream?.destroy(); streamRequest.destroy(); });
+  await once(streamRequest, "response");
   assert.equal((await request("/api/forge/test", { body: {} })).status, 202);
   const limited = await request("/api/forge/test", { body: {} });
   assert.equal(limited.status, 429);
   assert.ok(Number(limited.headers["retry-after"]) > 0);
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise(resolve => setTimeout(resolve, 750));
   const testMemory = JSON.parse((await request("/api/memory")).text).events;
   assert.ok(testMemory.some(event => event.type === "chat.message" && event.user.startsWith("TEST_")));
+  assert.doesNotMatch(JSON.stringify(testMemory), /Hello, stream!/);
+  assert.doesNotMatch(wire, /Hello, stream!/);
+  assert.match(wire, /TEST_Viewer2/);
+  const afterFilter = JSON.parse((await request("/api/safety/stats")).text);
+  assert.ok(afterFilter.blocked >= 1);
+  assert.ok(afterFilter.byReason.blocklist >= 1);
+  stream.destroy();
+  streamRequest.destroy();
 
 });

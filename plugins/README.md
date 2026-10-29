@@ -23,6 +23,8 @@ With `DEMO=1`, enter `!recap` in the control page's demo test box or POST to `/a
 18. Pure `!1`-`!4` (including Arabic-Indic digits) and `!recap`, when received by the overlay, are delivered only as `command` events (`user`, `text`, `ts`), never as `chat.message`. The server consumes real `!recap` chat commands to publish `recap.card`; those commands do not enter the overlay chat stream.
 19. Frames start hidden until a subscribed event arrives; recap frames hide after 12 seconds. Empty frames never capture pointer input.
 
+Chat is filtered centrally before forwarding. Blocked chat never reaches plugins; accepted messages may have normalized text, `[link]` replacements, and shortened repeated-character runs. The basic configurable filter does not replace Twitch AutoMod. Safety flags, reasons, blocklist contents, and per-user spam state are not part of the plugin event contract.
+
 ## Authoring checklist
 
 Create only `plugins/<slug>/manifest.json` and `plugins/<slug>/plugin.html`. Keep CSS and JavaScript inline; do not use network requests, imports, external assets, cookies, localStorage, sessionStorage, or IndexedDB. Verify `event.source === parent` inside the message listener. Apply theme tokens, use `dir="auto"` and `textContent` for dynamic text, handle empty or missing data, respect `prefers-reduced-motion` for animations, and keep animated DOM nodes under approximately 30. Pick an available named slot; frames are clamped and cannot cover the reserved vote zone.

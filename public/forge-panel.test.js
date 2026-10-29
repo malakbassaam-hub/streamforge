@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderPluginStatus, renderForgeContract, initForgePanel } from "./forge-panel.js";
+import { renderPluginStatus, renderForgeContract, renderSafetyStats, initForgePanel } from "./forge-panel.js";
 
 function fakeDocument() {
   const nodes = new Map();
@@ -30,7 +30,18 @@ const contract = {
   positions: ["top-right", "recap"], events: { "chat.message": ["type", "user", "text", "ts"] },
 };
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
-const initialFetch = async url => response(url === "/api/plugins/status" ? { valid: [], invalid: [] } : contract);
+const initialFetch = async url => response(url === "/api/plugins/status" ? { valid: [], invalid: [] }
+  : url === "/api/safety/stats" ? { blocked: 0, linksRemoved: 0, byReason: {} } : contract);
+
+test("control panel renders aggregate safety counts and reasons safely", () => {
+  const doc = fakeDocument();
+  renderSafetyStats(doc, { blocked: 4, linksRemoved: 2, byReason: { blocklist: 3, rate_limit: 1 } });
+  assert.match(doc.querySelector("#safety-counts").textContent, /Blocked messages: 4/);
+  assert.match(doc.querySelector("#safety-counts").textContent, /Links removed: 2/);
+  assert.match(doc.querySelector("#safety-reasons").textContent, /blocklist: 3/);
+  renderSafetyStats(doc, { blocked: 0, linksRemoved: 0, byReason: {} });
+  assert.equal(doc.querySelector("#safety-reasons").textContent, "No filter actions yet.");
+});
 
 test("demo hype button posts the burst and reports success, cooldown and disabled-demo errors", async () => {
   const doc = fakeDocument();
@@ -90,11 +101,11 @@ test("management view fetches and renders both endpoints initially and on refres
   const calls = [];
   const panel = initForgePanel(doc, async url => { calls.push(url); return initialFetch(url); });
   await panel.ready;
-  assert.deepEqual(calls, ["/api/plugins/status", "/api/forge/contract"]);
+  assert.deepEqual(calls, ["/api/plugins/status", "/api/forge/contract", "/api/safety/stats"]);
   assert.match(doc.querySelector("#forge-status").textContent, /up to date/);
   assert.equal(doc.querySelector("#forge-refresh").disabled, false);
   await doc.querySelector("#forge-refresh").listeners.click();
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 6);
 });
 
 test("a failed status fetch does not prevent contract display or retry", async () => {

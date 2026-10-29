@@ -18,7 +18,17 @@ Use Node.js 24 (the tested runtime), run `npm ci`, set `DEMO=1` in `.env`, then 
 
 The default bind address is `127.0.0.1`; `HOST` and `PORT` override binding. Requests must have a localhost, 127.0.0.1, or [::1] Host header. Administrative Forge/demo/vote endpoints also enforce a loopback socket address. Keep the default bind for demos: this is not an authenticated public hosting configuration.
 
-Plugins receive allowlisted fields via postMessage, use scripts-only sandboxing, and retain the restrictive plugin CSP. See [plugin rules](plugins/README.md) and [agent guidelines](AGENTS.md). Chat safety currently trims and truncates text; a moderation filter is planned.
+Plugins receive allowlisted fields via postMessage, use scripts-only sandboxing, and retain the restrictive plugin CSP. See [plugin rules](plugins/README.md) and [agent guidelines](AGENTS.md).
+
+## Basic chat filtering
+
+This basic configurable filter does **not** replace Twitch AutoMod. Keep AutoMod enabled. Extend `config/blocklist.txt` with one term per line; blank lines and lines beginning with `#` are ignored. The shipped terms are only two placeholders, not a comprehensive moderation list. Restart the server after editing. An unreadable/missing blocklist prevents startup rather than silently disabling filtering.
+
+Text is normalized with NFKC, stripped of control/invisible/bidi formatting, whitespace-collapsed, and limited to 200 Unicode characters. URLs become `[link]`; runs longer than four identical characters collapse to four. Blocklist matching checks the full message before truncation using lowercase, stripped diacritics/tatweel and separators, and a small mapping of common look-alikes. Matching is substring-based: evasions can still get through, and innocent phrases can be blocked. Test your own terms before going live.
+
+Messages with at least 12 cased letters and at least 90% uppercase are blocked. Per normalized username, the third matching message within 30 seconds is blocked, as are attempts exceeding five messages in ten seconds. Clean vote commands still work within these limits. Spam state is bounded to 5,000 users with short-lived hashed message fingerprints; it resets on restart.
+
+Blocked messages never enter votes, event history, SSE, plugin forwarding, or recaps. Cleaning alone (such as URL replacement) does not block a message. The control panel shows aggregate counts; use **Refresh plugins, safety and contract** to update them. `GET /api/safety/stats` is localhost-only and returns `{blocked, linksRemoved, byReason}` since startup. `linksRemoved` counts individual URL replacements, including replacements in subsequently blocked attempts. `byReason` counts messages with each cleanup/blocking reason, so its sum can exceed the number blocked. No blocked text is included in these statistics.
 
 ## Validation
 

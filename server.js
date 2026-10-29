@@ -9,6 +9,7 @@ import { startEventSub } from "./core/eventsub.js";
 import { scanPlugins, scanPluginStatus, watchPlugins } from "./core/plugins.js";
 import { forgeContract, requireLoopback, createForgeTester } from "./core/forge.js";
 import { createEventHandler } from "./core/events.js";
+import { createChatFilter } from "./core/safety.js";
 import { createRecapManager, isRecapCommand } from "./core/recap.js";
 import { createSnapshotStore } from "./core/snapshot.js";
 import { requireLocalHost } from "./core/host.js";
@@ -122,9 +123,14 @@ const demoVoteOptions = process.env.DEMO === "1"
 const simulator = createDemoSimulator(demoVoteOptions);
 
 const recapManager = createRecapManager(() => eventMemory, publish);
+const chatFilter = createChatFilter();
 const handleEvent = createEventHandler(voteManager, publish, () => {
   voteManager.isOpen();
   recapManager.request();
+}, chatFilter);
+
+app.get("/api/safety/stats", requireLoopback, (_request, response) => {
+  response.json(chatFilter.getStats());
 });
 
 let nextDemoBurstAt = -Infinity;
