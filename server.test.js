@@ -72,6 +72,12 @@ for (const demo of ["0", "1"]) test(`actual server routes, vote limits, snapshot
   assert.match(control.headers["content-type"], /charset=utf-8/i);
   assert.ok(control.text.includes("Forge Kit - Plugins"));
   assert.ok(control.text.includes("Demo hype burst"));
+  const authStatus = JSON.parse((await request("/auth/status")).text);
+  assert.equal(authStatus.connected, false);
+  assert.equal(authStatus.eventsubState, "error");
+  const authStart = await request("/auth/twitch");
+  assert.equal(authStart.status, 302);
+  assert.equal(new URL(authStart.headers.location).searchParams.get("scope"), "user:read:chat");
   assert.equal(plugin.status, 200);
   assert.equal(plugin.headers["content-security-policy"],
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'");

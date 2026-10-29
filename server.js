@@ -5,6 +5,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDemoSimulator } from "./core/demo.js";
+import { createTokenManager, saveTokensAtomically, createOAuthStates } from "./core/auth.js";
 import { startEventSub } from "./core/eventsub.js";
 import { scanPlugins, scanPluginStatus, watchPlugins } from "./core/plugins.js";
 import { forgeContract, requireLoopback, createForgeTester } from "./core/forge.js";
@@ -53,53 +54,13 @@ function loadTokens() {
   }
 }
 
-function saveTokens(tokens) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
-}
-
-let twitchTokens = loadTokens();
-
-function storeTokenResponse(data) {
-  twitchTokens = {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    scope: data.scope,
-    expiresAt: Date.now() + data.expires_in * 1000,
-  };
-  saveTokens(twitchTokens);
-}
-
-// Returns a valid access token, refreshing it automatically when it is about to expire.
-async function getValidToken() {
-  if (!twitchTokens) return null;
-  if (Date.now() < twitchTokens.expiresAt - 60_000) return twitchTokens.accessToken;
-
-  try {
-    const response = await fetch("https://id.twitch.tv/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: TWITCH_CLIENT_ID,
-        client_secret: TWITCH_CLIENT_SECRET,
-        grant_type: "refresh_token",
-        refresh_token: twitchTokens.refreshToken,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok || !data.access_token) {
-      console.error("Token refresh failed:", data.message || data.error);
-      twitchTokens = null;
-      return null;
-    }
-    storeTokenResponse(data);
-    console.log("Token refreshed.");
-    return twitchTokens.accessToken;
-  } catch (err) {
-    console.error("Token refresh error:", err.message);
-    return null;
-  }
-}
+const tokenManager = createTokenManager({
+  initialTokens: loadTokens(), saveTokens: tokens => saveTokensAtomically(TOKEN_FILE, tokens),
+  clientId: TWITCH_CLIENT_ID, clientSecret: TWITCH_CLIENT_SECRET,
+});
+const getValidToken = tokenManager.getValidToken;
+const storeTokenResponse = tokenManager.store;
+let eventSub;
 
 // ---- Publishing events to memory + all connected overlays ----
 function publish(event) {
@@ -256,8 +217,9 @@ app.get("/auth/status", async (_req, res) => {
   const token = await getValidToken();
   res.json({
     connected: Boolean(token),
-    scope: twitchTokens?.scope ?? null,
-    expiresInMinutes: twitchTokens ? Math.round((twitchTokens.expiresAt - Date.now()) / 60000) : null,
+    eventsubState: eventSub?.getState() ?? "error",
+    scope: tokenManager.getTokens()?.scope ?? null,
+    expiresInMinutes: tokenManager.getTokens() ? Math.round((tokenManager.getTokens().expiresAt - Date.now()) / 60000) : null,
   });
 });
 
@@ -270,14 +232,14 @@ if (process.env.DEMO !== "0") {
 
 // ---- Real Twitch events ----
 function launchEventSub() {
-  if (!twitchTokens) return;
-  startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: handleEvent,
+  if (!tokenManager.getTokens()) return;
+  eventSub = startEventSub({ clientId: TWITCH_CLIENT_ID, getValidToken, onEvent: handleEvent,
     onStatusChange: live => publish(snapshotStore.setStatus({ live })),
   });
 }
 
 // ---- Twitch OAuth ----
-const pendingStates = new Set();
+const pendingStates = createOAuthStates();
 
 app.get("/auth/twitch", (_req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
@@ -286,7 +248,7 @@ app.get("/auth/twitch", (_req, res) => {
     client_id: TWITCH_CLIENT_ID ?? "",
     redirect_uri: TWITCH_REDIRECT_URI ?? "",
     response_type: "code",
-    scope: "user:read:chat user:write:chat channel:manage:broadcast",
+    scope: "user:read:chat",
     state,
   });
   res.redirect(`https://id.twitch.tv/oauth2/authorize?${params}`);
@@ -331,4 +293,4 @@ const server = app.listen(port, host, () => {
   console.log(`StreamForge demo server listening at http://${host}:${port}`);
   launchEventSub();
 });
-server.on("close", () => { pluginWatcher.close(); forgeTester.stop(); });
+server.on("close", () => { pluginWatcher.close(); forgeTester.stop(); eventSub?.stop(); pendingStates.close(); });

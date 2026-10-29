@@ -30,6 +30,14 @@ Messages with at least 12 cased letters and at least 90% uppercase are blocked. 
 
 Blocked messages never enter votes, event history, SSE, plugin forwarding, or recaps. Cleaning alone (such as URL replacement) does not block a message. The control panel shows aggregate counts; use **Refresh plugins, safety and contract** to update them. `GET /api/safety/stats` is localhost-only and returns `{blocked, linksRemoved, byReason}` since startup. `linksRemoved` counts individual URL replacements, including replacements in subsequently blocked attempts. `byReason` counts messages with each cleanup/blocking reason, so its sum can exceed the number blocked. No blocked text is included in these statistics.
 
+## Twitch connection reliability
+
+`GET /auth/status` includes `eventsubState`: `connecting`, `connected`, `reconnecting`, or `error`. Its existing `connected` boolean still describes token availability, not EventSub readiness. Without a login/client, the EventSub state is `error`.
+
+Initial and handoff sockets have a ten-second welcome timeout. Each subscription is attempted at most five times, with 1/2/4/8-second retry delays; exhaustion retires the session and schedules a fresh connection after five seconds. Revocations also trigger a fresh session and subscription setup. Failed handoffs retire both sockets, and retired sockets cannot publish events or retry subscriptions. HTTP requests time out after ten seconds. Token refreshes share one in-flight promise, token saves use a temporary file plus rename, and one-time OAuth states expire after ten minutes.
+
+New OAuth requests ask only for `user:read:chat`. Twitch documents that scope for [channel.chat.message](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channel-chat-message) and no additional authorization for [channel.raid](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channel-raid). Removed `user:write:chat` (the app never sends Twitch chat) and `channel:manage:broadcast` (the app never modifies channel configuration, tags, or markers); their purposes are listed in [Twitch's scope reference](https://dev.twitch.tv/docs/authentication/scopes/). Existing saved grants are not automatically narrowed or revoked; reauthorize/revoke old grants through Twitch as needed. Revoked authorization still requires a new login and cannot be restored by reconnecting alone.
+
 ## Validation
 
 Run `npm test` (or `npm.cmd test`). This covers backend/frontend behavior, contracts, plugin validation, sandbox attributes/CSP, Host/loopback checks, cooldowns, snapshots, recaps, and slot geometry at both OBS resolutions.
